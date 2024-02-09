@@ -3,6 +3,7 @@ package authn
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/go-chi/render"
 	"log"
 	"net/http"
@@ -42,13 +43,18 @@ func (h Handler) Registration(w http.ResponseWriter, r *http.Request) {
 	}
 
 	registered, err := h.s.NewPerson(ctx, registering)
-	if err != nil {
+	if err != nil && errors.Is(err, context.DeadlineExceeded) {
 		log.Printf("Ошибка в регистрации - %s\n", err)
 		apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
 			Action: "Регистрация пользователя",
 			Error:  "Таймаут",
 		})
 		return
+	} else if err != nil {
+		apperr.New(w, r, http.StatusInternalServerError, apperr.AppError{
+			Action: "Регистрация пользователя",
+			Error:  err.Error(),
+		})
 	}
 
 	render.JSON(w, r, &registered)
