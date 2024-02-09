@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"github.com/spf13/viper"
 	"log"
 	"net/http"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"practice_vgpek/internal/handler"
 	"practice_vgpek/internal/repository"
 	"practice_vgpek/internal/service"
+	"practice_vgpek/pkg/postgres"
 	"syscall"
 	"time"
 )
@@ -17,7 +19,20 @@ import (
 func main() {
 	mainCtx, cancel := context.WithCancel(context.Background())
 
-	repo := repository.New()
+	err := mustLoadConfig()
+	if err != nil {
+		panic("ошибка в чтении конфига")
+	}
+
+	db, err := postgres.NewPostgresPool(postgres.Config{
+		Host:     viper.GetString("db.host"),
+		Port:     viper.GetString("db.port"),
+		Username: viper.GetString("db.username"),
+		Password: viper.GetString("db.password"),
+		DBName:   viper.GetString("db.dbname"),
+		SSLMode:  viper.GetString("db.sslmode"),
+	})
+	repo := repository.New(db)
 	services := service.New(repo)
 	handlers := handler.New(services)
 
@@ -49,11 +64,18 @@ func main() {
 		cancel()
 	}()
 
-	err := httpServer.ListenAndServe()
+	err = httpServer.ListenAndServe()
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatal(err)
 	}
 
 	<-mainCtx.Done()
 
+}
+
+func mustLoadConfig() error {
+	viper.AddConfigPath("configs")
+	viper.SetConfigName("local")
+
+	return viper.ReadInConfig()
 }
