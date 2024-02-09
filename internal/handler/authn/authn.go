@@ -55,6 +55,7 @@ func (h Handler) Registration(w http.ResponseWriter, r *http.Request) {
 			Action: "Регистрация пользователя",
 			Error:  err.Error(),
 		})
+		return
 	}
 
 	render.JSON(w, r, &registered)
