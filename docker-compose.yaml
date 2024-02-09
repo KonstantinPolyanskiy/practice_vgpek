@@ -2,34 +2,36 @@ version: "3.9"
 
 services:
   postgres:
-    container_name: "postgres_cont"
+    container_name: postgres_container
     image: postgres:latest
     environment:
-      POSTGRES_DB: "practice_system_db"
-      POSTGRRES_USER: "Admin"
-      POSTGRES_PASSWORD: "DefaultAdminPassword"
+      POSTGRES_DB: "testDbName"
+      POSTGRES_USER: "testUsername"
+      POSTGRES_PASSWORD: "testPass"
       PG_DATA: "/var/lib/postgresql/data"
     volumes:
-      - ../2/ Init Database:/docker-entrypoint-initdb.d
-      - practice-db-data:/var/lib/postgresql/data
+      - ../2. Init Database:/docker-entrypoint-initdb.d
+      - practicedb-data:/var/lib/postgresql/data
     ports:
-      - "5333:5333"
+      - "5432:5432"
     networks:
       - postgres
   pgadmin:
-    container_name: "pgadmin_cont"
+    container_name: "pgadmin_container"
     image: dpage/pgadmin4:latest
     environment:
       PGADMIN_DEFAULT_EMAIL: "default@mail.ru"
-      PGADMIN_DEFAULT_PASSWORD: "DefaultPass"
-      PGADMIN_DEFAULT_SERVER_MODE: "False"
+      PGADMIN_DEFAULT_PASSWORD: "defaultPassword"
+      PGADMIN_CONFIG_SERVER_MODE: "False"
     volumes:
       - pgadmin-data:/var/lib/pgadmin
+    ports:
+      - "5050:80"
     restart: unless-stopped
     networks:
       - postgres
 volumes:
-  practice-db-data:
+  practicedb-data:
   pgadmin-data:
 networks:
   postgres:
