@@ -1,6 +1,9 @@
 package person
 
-import "time"
+import (
+	"practice_vgpek/internal/model/account"
+	"time"
+)
 
 type Personality struct {
 	FirstName  string `json:"first_name"`
@@ -17,6 +20,8 @@ type RegistrationReq struct {
 	Personality
 
 	Credentials
+
+	RegistrationKey string `json:"registration_key"`
 }
 
 type RegisteredResp struct {
@@ -35,6 +40,5 @@ type Entity struct {
 
 type DTO struct {
 	Personality
-	Login        string
-	PasswordHash string
+	Account account.DTO
 }
