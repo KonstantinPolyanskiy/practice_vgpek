@@ -22,7 +22,8 @@ func NewKeyRepo(db *pgxpool.Pool) Repository {
 func (r Repository) SaveKey(ctx context.Context, key registration_key.DTO) (registration_key.Entity, error) {
 	var insertedKeyId int
 
-	insertKeyQuery := `INSERT INTO registration_key (internal_role_id, body_key, max_count_usages, current_count_usages, created_at)  
+	insertKeyQuery := `
+	INSERT INTO registration_key (internal_role_id, body_key, max_count_usages, current_count_usages, created_at)  
 	VALUES (@RoleId, @BodyKey, @MaxCountUsages, @CurrentCountUsages, @CreatedAt)
 	RETURNING reg_key_id
 	`
@@ -59,4 +60,32 @@ func (r Repository) SaveKey(ctx context.Context, key registration_key.DTO) (regi
 	}
 
 	return savedKey, nil
+}
+
+func (r Repository) RegKeyByBody(ctx context.Context, body string) (registration_key.Entity, error) {
+	findRoleQuery := `
+		SELECT * FROM registration_key
+		WHERE body_key = @BodyKey 
+		AND is_valid=true
+		AND invalidation_time IS NULL
+	`
+
+	args := pgx.NamedArgs{
+		"BodyKey": body,
+	}
+
+	row, err := r.db.Query(ctx, findRoleQuery, args)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return registration_key.Entity{}, errors.New("ключ регистрации по телу не найден")
+		}
+		return registration_key.Entity{}, err
+	}
+
+	regKey, err := pgx.CollectOneRow(row, pgx.RowToStructByName[registration_key.Entity])
+	if err != nil {
+		return registration_key.Entity{}, err
+	}
+
+	return regKey, nil
 }

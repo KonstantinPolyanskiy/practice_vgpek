@@ -3,7 +3,9 @@ package authn
 import (
 	"context"
 	"fmt"
+	"practice_vgpek/internal/model/account"
 	"practice_vgpek/internal/model/person"
+	"practice_vgpek/internal/model/registration_key"
 	"practice_vgpek/pkg/password"
 )
 
@@ -11,13 +13,19 @@ type Repository interface {
 	SavePerson(ctx context.Context, person person.DTO) (person.Entity, error)
 }
 
-type Service struct {
-	r Repository
+type KeyRepository interface {
+	RegKeyByBody(ctx context.Context, body string) (registration_key.Entity, error)
 }
 
-func NewAuthenticationService(repository Repository) Service {
+type Service struct {
+	r  Repository
+	kr KeyRepository
+}
+
+func NewAuthenticationService(repository Repository, keyRepository KeyRepository) Service {
 	return Service{
-		r: repository,
+		r:  repository,
+		kr: keyRepository,
 	}
 }
 
@@ -39,6 +47,14 @@ func (s Service) NewPerson(ctx context.Context, registering person.RegistrationR
 			}
 		}
 
+		regKey, err := s.kr.RegKeyByBody(ctx, registering.RegistrationKey)
+		if err != nil {
+			resCh <- RegistrationResult{
+				RegisteredPerson: person.RegisteredResp{},
+				Error:            fmt.Errorf("ошибка с ключем регистрации"),
+			}
+		}
+
 		// Формируем DTO
 		dto := person.DTO{
 			Personality: person.Personality{
@@ -46,8 +62,12 @@ func (s Service) NewPerson(ctx context.Context, registering person.RegistrationR
 				MiddleName: registering.MiddleName,
 				LastName:   registering.LastName,
 			},
-			Login:        registering.Login,
-			PasswordHash: passwordHash,
+			Account: account.DTO{
+				Login:        registering.Login,
+				PasswordHash: passwordHash,
+				RoleId:       regKey.RoleId,
+				RegKeyId:     regKey.RegKeyId,
+			},
 		}
 
 		// Сохраняем регистируемого пользователя в БД
