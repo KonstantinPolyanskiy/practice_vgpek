@@ -12,9 +12,9 @@ import (
 )
 
 type Service interface {
-	NewKey(ctx context.Context, req registration_key.AddReq) (registration_key.Entity, error)
-	GetKeyById(ctx context.Context)
-	GetKeyByRoleId(ctx context.Context)
+	NewKey(ctx context.Context, req registration_key.AddReq) (registration_key.AddResp, error)
+	FindKeyById(ctx context.Context)
+	FindKeyByRoleId(ctx context.Context)
 	InvalidateKey(ctx context.Context)
 }
 

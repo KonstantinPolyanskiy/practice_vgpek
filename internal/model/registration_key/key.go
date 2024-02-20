@@ -22,12 +22,12 @@ type DTO struct {
 }
 
 type Entity struct {
-	RegKeyId           int
-	RoleId             int
-	Body               string
-	MaxCountUsages     int
-	CurrentCountUsages int
-	CreatedAt          time.Time
-	IsValid            bool
-	InvalidationTime   time.Time
+	RegKeyId           int        `db:"reg_key_id"`
+	RoleId             int        `db:"internal_role_id"`
+	Body               string     `db:"body_key"`
+	MaxCountUsages     int        `db:"max_count_usages"`
+	CurrentCountUsages int        `db:"current_count_usages"`
+	CreatedAt          time.Time  `db:"created_at"`
+	IsValid            bool       `db:"is_valid"`
+	InvalidationTime   *time.Time `db:"invalidation_time"`
 }
