@@ -105,5 +105,19 @@ func (r Repository) IncCountUsages(ctx context.Context, keyId int) error {
 }
 
 func (r Repository) Invalidate(ctx context.Context, keyId int) error {
+	invalidateKeyQuery := `
+	UPDATE registration_key
+	SET 
+	is_valid = false 
+	AND 
+	invalidation_time = $2
+	WHERE reg_key_id = $1
+`
+
+	_, err := r.db.Exec(ctx, invalidateKeyQuery, keyId, time.Now())
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
