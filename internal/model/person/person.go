@@ -30,12 +30,11 @@ type RegisteredResp struct {
 }
 
 type Entity struct {
-	Personality
-	PasswordHash   string
-	Login          string
-	CreatedAt      time.Time
-	IsActive       bool
-	DeactivateTime time.Time
+	PersonId   int    `db:"person_id"`
+	FirstName  string `db:"first_name"`
+	MiddleName string `db:"middle_name"`
+	LastName   string `db:"last_name"`
+	AccountId  int    `db:"account_id"`
 }
 
 type DTO struct {

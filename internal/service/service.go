@@ -27,7 +27,7 @@ type Service struct {
 
 func New(repository repository.Repository) Service {
 	return Service{
-		AuthnService: authn.NewAuthenticationService(repository.PersonRepo, repository.KeyRepo),
+		AuthnService: authn.NewAuthenticationService(repository.PersonRepo, repository.AccountRepo, repository.KeyRepo),
 		KeyService:   reg_key.NewKeyService(repository.KeyRepo),
 	}
 }

@@ -10,22 +10,31 @@ import (
 )
 
 type Repository interface {
-	SavePerson(ctx context.Context, person person.DTO) (person.Entity, error)
+	SavePerson(ctx context.Context, savingPerson person.DTO, accountId int) (person.Entity, error)
 }
 
 type KeyRepository interface {
 	RegKeyByBody(ctx context.Context, body string) (registration_key.Entity, error)
 }
 
+type AccountRepository interface {
+	SaveAccount(ctx context.Context, savingAcc account.DTO) (account.Entity, error)
+}
+
 type Service struct {
 	r  Repository
 	kr KeyRepository
+	ar AccountRepository
 }
 
-func NewAuthenticationService(repository Repository, keyRepository KeyRepository) Service {
+func NewAuthenticationService(
+	repository Repository,
+	accountRepository AccountRepository,
+	keyRepository KeyRepository) Service {
 	return Service{
 		r:  repository,
 		kr: keyRepository,
+		ar: accountRepository,
 	}
 }
 
@@ -47,6 +56,7 @@ func (s Service) NewPerson(ctx context.Context, registering person.RegistrationR
 			}
 		}
 
+		// Получаем ключ, по которому зарегистрированн пользователь
 		regKey, err := s.kr.RegKeyByBody(ctx, registering.RegistrationKey)
 		if err != nil {
 			resCh <- RegistrationResult{
@@ -70,8 +80,17 @@ func (s Service) NewPerson(ctx context.Context, registering person.RegistrationR
 			},
 		}
 
+		// Сохраняем регистрируеммый аккаунт пользователя в БД
+		savedAcc, err := s.ar.SaveAccount(ctx, dto.Account)
+		if err != nil {
+			resCh <- RegistrationResult{
+				RegisteredPerson: person.RegisteredResp{},
+				Error:            err,
+			}
+		}
+
 		// Сохраняем регистируемого пользователя в БД
-		savedPerson, err := s.r.SavePerson(ctx, dto)
+		savedPerson, err := s.r.SavePerson(ctx, dto, savedAcc.AccountId)
 		if err != nil {
 			resCh <- RegistrationResult{
 				RegisteredPerson: person.RegisteredResp{},
@@ -86,7 +105,7 @@ func (s Service) NewPerson(ctx context.Context, registering person.RegistrationR
 				MiddleName: savedPerson.MiddleName,
 				LastName:   savedPerson.LastName,
 			},
-			CreatedAt: savedPerson.CreatedAt,
+			CreatedAt: savedAcc.CreatedAt,
 		}
 
 		// Кладем ответ в канал

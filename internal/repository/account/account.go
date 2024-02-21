@@ -52,7 +52,6 @@ func (r Repository) SaveAccount(ctx context.Context, savingAcc account.DTO) (acc
 		}
 		return account.Entity{}, err
 	}
-
 	savedAcc, err := pgx.CollectOneRow(row, pgx.RowToStructByName[account.Entity])
 	if err != nil {
 		return account.Entity{}, err
