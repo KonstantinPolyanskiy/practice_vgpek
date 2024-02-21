@@ -16,6 +16,7 @@ type Repository interface {
 type KeyRepository interface {
 	RegKeyByBody(ctx context.Context, body string) (registration_key.Entity, error)
 	IncCountUsages(ctx context.Context, keyId int) error
+	Invalidate(ctx context.Context, keyId int) error
 }
 
 type AccountRepository interface {
@@ -51,27 +52,29 @@ func (s Service) NewPerson(ctx context.Context, registering person.RegistrationR
 		// Получаем ключ, по которому зарегистрированн пользователь
 		regKey, err := s.kr.RegKeyByBody(ctx, registering.RegistrationKey)
 		if err != nil {
-			resCh <- RegistrationResult{
-				RegisteredPerson: person.RegisteredResp{},
-				Error:            fmt.Errorf("ошибка с ключем регистрации"),
-			}
+			sendRegistrationResult(resCh, person.RegisteredResp{}, "ошибка с ключем регистрации")
+			return
 		}
 
-		// Проверяем, что текущее кол-во зарегестрированных аккаунтов по ключу не привысит максимальный порог
+		// Проверка что ключ валиден, если нет - возвращаем ошибку
+		if !regKey.IsValid {
+			sendRegistrationResult(resCh, person.RegisteredResp{}, "невалидный ключ")
+			return
+		}
+
+		// Проверяем, что ключ еще можно использовать, если нет - инвалидируем
 		if regKey.CurrentCountUsages == regKey.MaxCountUsages {
-			resCh <- RegistrationResult{
-				RegisteredPerson: person.RegisteredResp{},
-				Error:            fmt.Errorf("достигнуто максимальное кол-во регистраций по ключу"),
+			if err = s.kr.Invalidate(ctx, regKey.RegKeyId); err != nil {
+				sendRegistrationResult(resCh, person.RegisteredResp{}, "ошибка деактивирования ключа")
+				return
 			}
 		}
 
 		// Хешируем пароль
 		passwordHash, err := password.Hash(registering.Password)
 		if err != nil {
-			resCh <- RegistrationResult{
-				RegisteredPerson: person.RegisteredResp{},
-				Error:            fmt.Errorf("ошибка в хешировании пароля - %s\n", err.Error()),
-			}
+			sendRegistrationResult(resCh, person.RegisteredResp{}, "ошибка хеширования пароля")
+			return
 		}
 
 		// Формируем DTO
@@ -92,28 +95,22 @@ func (s Service) NewPerson(ctx context.Context, registering person.RegistrationR
 		// Сохраняем регистрируеммый аккаунт пользователя в БД
 		savedAcc, err := s.ar.SaveAccount(ctx, dto.Account)
 		if err != nil {
-			resCh <- RegistrationResult{
-				RegisteredPerson: person.RegisteredResp{},
-				Error:            err,
-			}
+			sendRegistrationResult(resCh, person.RegisteredResp{}, "ошибка сохранения аккаунта")
+			return
 		}
 
 		// Если аккаунт создан, увеличиваем кол-во регистраций по ключу
 		err = s.kr.IncCountUsages(ctx, regKey.RegKeyId)
 		if err != nil {
-			resCh <- RegistrationResult{
-				RegisteredPerson: person.RegisteredResp{},
-				Error:            fmt.Errorf("ошибка обновления ключа"),
-			}
+			sendRegistrationResult(resCh, person.RegisteredResp{}, "ошибка обновления ключа")
+			return
 		}
 
 		// Сохраняем регистируемого пользователя в БД
 		savedPerson, err := s.r.SavePerson(ctx, dto, savedAcc.AccountId)
 		if err != nil {
-			resCh <- RegistrationResult{
-				RegisteredPerson: person.RegisteredResp{},
-				Error:            err,
-			}
+			sendRegistrationResult(resCh, person.RegisteredResp{}, "ошибка сохранения пользователя")
+			return
 		}
 
 		// Формируем ответ сервиса
@@ -127,10 +124,8 @@ func (s Service) NewPerson(ctx context.Context, registering person.RegistrationR
 		}
 
 		// Кладем ответ в канал
-		resCh <- RegistrationResult{
-			RegisteredPerson: registeredPerson,
-			Error:            nil,
-		}
+		sendRegistrationResult(resCh, registeredPerson, "")
+		return
 	}()
 
 	for {
@@ -141,5 +136,17 @@ func (s Service) NewPerson(ctx context.Context, registering person.RegistrationR
 			return result.RegisteredPerson, result.Error
 		}
 	}
+}
 
+func sendRegistrationResult(resCh chan RegistrationResult, resp person.RegisteredResp, errMsg string) {
+	var err error
+
+	if errMsg != "" {
+		err = fmt.Errorf(errMsg)
+	}
+
+	resCh <- RegistrationResult{
+		RegisteredPerson: resp,
+		Error:            err,
+	}
 }

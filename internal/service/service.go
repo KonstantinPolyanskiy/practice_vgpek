@@ -15,9 +15,6 @@ type AuthnService interface {
 
 type KeyService interface {
 	NewKey(ctx context.Context, req registration_key.AddReq) (registration_key.AddResp, error)
-	FindKeyById(ctx context.Context)
-	FindKeyByRoleId(ctx context.Context)
-	InvalidateKey(ctx context.Context)
 }
 
 type Service struct {

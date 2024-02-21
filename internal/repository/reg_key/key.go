@@ -103,3 +103,7 @@ func (r Repository) IncCountUsages(ctx context.Context, keyId int) error {
 
 	return nil
 }
+
+func (r Repository) Invalidate(ctx context.Context, keyId int) error {
+	return nil
+}
