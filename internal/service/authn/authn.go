@@ -98,6 +98,15 @@ func (s Service) NewPerson(ctx context.Context, registering person.RegistrationR
 			}
 		}
 
+		// Если аккаунт создан, увеличиваем кол-во регистраций по ключу
+		err = s.kr.IncCountUsages(ctx, regKey.RegKeyId)
+		if err != nil {
+			resCh <- RegistrationResult{
+				RegisteredPerson: person.RegisteredResp{},
+				Error:            fmt.Errorf("ошибка обновления ключа"),
+			}
+		}
+
 		// Сохраняем регистируемого пользователя в БД
 		savedPerson, err := s.r.SavePerson(ctx, dto, savedAcc.AccountId)
 		if err != nil {

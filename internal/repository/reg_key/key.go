@@ -89,3 +89,17 @@ func (r Repository) RegKeyByBody(ctx context.Context, body string) (registration
 
 	return regKey, nil
 }
+
+func (r Repository) IncCountUsages(ctx context.Context, keyId int) error {
+	incrementCountQuery := `
+	UPDATE registration_key
+	SET current_count_usages = current_count_usages + 1
+	WHERE reg_key_id = $1
+`
+	_, err := r.db.Exec(ctx, incrementCountQuery, keyId)
+	if err != nil {
+		return errors.Join(ErrNotUpdate, err)
+	}
+
+	return nil
+}

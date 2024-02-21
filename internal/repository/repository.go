@@ -22,6 +22,7 @@ type AccountRepo interface {
 type KeyRepo interface {
 	SaveKey(ctx context.Context, key registration_key.DTO) (registration_key.Entity, error)
 	RegKeyByBody(ctx context.Context, body string) (registration_key.Entity, error)
+	IncCountUsages(ctx context.Context, keyId int) error
 }
 
 type Repository struct {
