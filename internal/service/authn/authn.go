@@ -15,6 +15,7 @@ type Repository interface {
 
 type KeyRepository interface {
 	RegKeyByBody(ctx context.Context, body string) (registration_key.Entity, error)
+	IncCountUsages(ctx context.Context, keyId int) error
 }
 
 type AccountRepository interface {
@@ -47,21 +48,29 @@ func (s Service) NewPerson(ctx context.Context, registering person.RegistrationR
 	resCh := make(chan RegistrationResult)
 
 	go func() {
-		// Хешируем пароль
-		passwordHash, err := password.Hash(registering.Password)
-		if err != nil {
-			resCh <- RegistrationResult{
-				RegisteredPerson: person.RegisteredResp{},
-				Error:            fmt.Errorf("ошибка в хешировании пароля - %s\n", err.Error()),
-			}
-		}
-
 		// Получаем ключ, по которому зарегистрированн пользователь
 		regKey, err := s.kr.RegKeyByBody(ctx, registering.RegistrationKey)
 		if err != nil {
 			resCh <- RegistrationResult{
 				RegisteredPerson: person.RegisteredResp{},
 				Error:            fmt.Errorf("ошибка с ключем регистрации"),
+			}
+		}
+
+		// Проверяем, что текущее кол-во зарегестрированных аккаунтов по ключу не привысит максимальный порог
+		if regKey.CurrentCountUsages == regKey.MaxCountUsages {
+			resCh <- RegistrationResult{
+				RegisteredPerson: person.RegisteredResp{},
+				Error:            fmt.Errorf("достигнуто максимальное кол-во регистраций по ключу"),
+			}
+		}
+
+		// Хешируем пароль
+		passwordHash, err := password.Hash(registering.Password)
+		if err != nil {
+			resCh <- RegistrationResult{
+				RegisteredPerson: person.RegisteredResp{},
+				Error:            fmt.Errorf("ошибка в хешировании пароля - %s\n", err.Error()),
 			}
 		}
 
