@@ -2,7 +2,7 @@
 -- +goose StatementBegin
 SELECT 'up SQL query';
 CREATE TABLE person (
-    person_id serial PRIMARY KEY NOT NULL,
+    person_uuid uuid PRIMARY KEY NOT NULL,
     account_id integer REFERENCES account (account_id),
     first_name varchar NOT NULL,
     middle_name varchar NOT NULL DEFAULT '',
