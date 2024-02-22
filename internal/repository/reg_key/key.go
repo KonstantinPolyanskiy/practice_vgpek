@@ -132,13 +132,23 @@ func (r Repository) RegKeyByBody(ctx context.Context, body string) (registration
 }
 
 func (r Repository) IncCountUsages(ctx context.Context, keyId int) error {
+	l := r.l.With(
+		zap.String("action", "increment key count"),
+		zap.String("layer", "repo"),
+	)
+
 	incrementCountQuery := `
 	UPDATE registration_key
 	SET current_count_usages = current_count_usages + 1
 	WHERE reg_key_id = $1
 `
+
+	l.Debug("increment key", zap.String("query", incrementCountQuery))
+
 	_, err := r.db.Exec(ctx, incrementCountQuery, keyId)
 	if err != nil {
+		l.Warn("error increment key", zap.Error(err))
+
 		return errors.Join(ErrNotUpdate, err)
 	}
 
@@ -146,6 +156,11 @@ func (r Repository) IncCountUsages(ctx context.Context, keyId int) error {
 }
 
 func (r Repository) Invalidate(ctx context.Context, keyId int) error {
+	l := r.l.With(
+		zap.String("action", "invalidate key"),
+		zap.String("layer", "repo"),
+	)
+
 	invalidateKeyQuery := `
 	UPDATE registration_key
 	SET 
@@ -155,8 +170,12 @@ func (r Repository) Invalidate(ctx context.Context, keyId int) error {
 	WHERE reg_key_id = $1
 `
 
+	l.Debug("invalidate key", zap.String("query", invalidateKeyQuery))
+
 	_, err := r.db.Exec(ctx, invalidateKeyQuery, keyId, time.Now())
 	if err != nil {
+		l.Warn("error invalidate key", zap.Error(err))
+
 		return err
 	}
 
