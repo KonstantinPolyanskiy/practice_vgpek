@@ -8,12 +8,9 @@ import (
 	"go.uber.org/zap"
 	"net/http"
 	"practice_vgpek/internal/model/person"
+	"practice_vgpek/internal/service/authn"
 	"practice_vgpek/pkg/apperr"
 	"time"
-)
-
-var (
-	registrationAction = "регистрация пользователя"
 )
 
 type Service interface {
@@ -40,7 +37,7 @@ func (h Handler) Registration(w http.ResponseWriter, r *http.Request) {
 
 	l := h.l.With(
 		zap.String("endpoint", r.RequestURI),
-		zap.String("action", registrationAction),
+		zap.String("action", authn.RegistrationAction),
 	)
 
 	err := json.NewDecoder(r.Body).Decode(&registering)
@@ -50,7 +47,7 @@ func (h Handler) Registration(w http.ResponseWriter, r *http.Request) {
 		)
 
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
-			Action: registrationAction,
+			Action: authn.RegistrationAction,
 			Error:  "Преобразование запроса на регистрацию",
 		})
 		return
@@ -59,7 +56,7 @@ func (h Handler) Registration(w http.ResponseWriter, r *http.Request) {
 	registered, err := h.s.NewPerson(ctx, registering)
 	if err != nil && errors.Is(err, context.DeadlineExceeded) {
 		apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
-			Action: registrationAction,
+			Action: authn.RegistrationAction,
 			Error:  "Таймаут",
 		})
 		return
@@ -73,7 +70,7 @@ func (h Handler) Registration(w http.ResponseWriter, r *http.Request) {
 		)
 
 		apperr.New(w, r, http.StatusInternalServerError, apperr.AppError{
-			Action: registrationAction,
+			Action: authn.RegistrationAction,
 			Error:  err.Error(),
 		})
 		return
