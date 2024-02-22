@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/go-chi/render"
+	"go.uber.org/zap"
 	"net/http"
 	"practice_vgpek/internal/model/registration_key"
 	"practice_vgpek/pkg/apperr"
@@ -13,17 +14,16 @@ import (
 
 type Service interface {
 	NewKey(ctx context.Context, req registration_key.AddReq) (registration_key.AddResp, error)
-	FindKeyById(ctx context.Context)
-	FindKeyByRoleId(ctx context.Context)
-	InvalidateKey(ctx context.Context)
 }
 
 type Handler struct {
+	l *zap.Logger
 	s Service
 }
 
-func NewRegKeyHandler(service Service) Handler {
+func NewRegKeyHandler(service Service, logger *zap.Logger) Handler {
 	return Handler{
+		l: logger,
 		s: service,
 	}
 }

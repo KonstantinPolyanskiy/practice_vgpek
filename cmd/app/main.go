@@ -11,6 +11,7 @@ import (
 	"practice_vgpek/internal/handler"
 	"practice_vgpek/internal/repository"
 	"practice_vgpek/internal/service"
+	"practice_vgpek/pkg/logger"
 	"practice_vgpek/pkg/postgres"
 	"syscall"
 	"time"
@@ -24,6 +25,16 @@ func main() {
 		panic("ошибка в чтении конфига")
 	}
 
+	logCfg := logger.Config{
+		Level:         "debug",
+		HasCaller:     true,
+		HasStacktrace: true,
+		Encoding:      "json",
+	}
+
+	logging, _ := logger.New(logCfg)
+	defer logging.Sync()
+
 	db, err := postgres.NewPostgresPool(postgres.Config{
 		Host:     viper.GetString("db.host"),
 		Port:     viper.GetString("db.port"),
@@ -34,7 +45,7 @@ func main() {
 	})
 	repo := repository.New(db)
 	services := service.New(repo)
-	handlers := handler.New(services)
+	handlers := handler.New(services, logging)
 
 	httpServer := &http.Server{
 		Addr:    ":8080",

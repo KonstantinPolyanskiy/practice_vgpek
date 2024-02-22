@@ -5,11 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/go-chi/render"
-	"log"
+	"go.uber.org/zap"
 	"net/http"
 	"practice_vgpek/internal/model/person"
 	"practice_vgpek/pkg/apperr"
 	"time"
+)
+
+var (
+	registrationAction = "регистрация пользователя"
 )
 
 type Service interface {
@@ -17,11 +21,13 @@ type Service interface {
 }
 
 type Handler struct {
+	l *zap.Logger
 	s Service
 }
 
-func NewAuthenticationHandler(service Service) Handler {
+func NewAuthenticationHandler(service Service, logger *zap.Logger) Handler {
 	return Handler{
+		l: logger,
 		s: service,
 	}
 }
@@ -32,31 +38,47 @@ func (h Handler) Registration(w http.ResponseWriter, r *http.Request) {
 
 	var registering person.RegistrationReq
 
+	l := h.l.With(
+		zap.String("endpoint", r.RequestURI),
+		zap.String("action", registrationAction),
+	)
+
 	err := json.NewDecoder(r.Body).Decode(&registering)
 	if err != nil {
-		log.Printf("Ошибка в unmarshall - %s\n", err)
+		l.Warn("error parse new person request",
+			zap.String("decoder error", err.Error()),
+		)
+
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
-			Action: "Регистрация пользователя",
-			Error:  "Преобразование запроса",
+			Action: registrationAction,
+			Error:  "Преобразование запроса на регистрацию",
 		})
 		return
 	}
 
 	registered, err := h.s.NewPerson(ctx, registering)
 	if err != nil && errors.Is(err, context.DeadlineExceeded) {
-		log.Printf("Ошибка в регистрации - %s\n", err)
 		apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
-			Action: "Регистрация пользователя",
+			Action: registrationAction,
 			Error:  "Таймаут",
 		})
 		return
 	} else if err != nil {
+		l.Warn("error registering user",
+			zap.String("Ключ регистрации", registering.RegistrationKey),
+		)
+		l.Debug("registering data",
+			zap.String("full name", registering.FirstName+" "+registering.MiddleName+" "+registering.MiddleName),
+			zap.String("login", registering.Login),
+		)
+
 		apperr.New(w, r, http.StatusInternalServerError, apperr.AppError{
-			Action: "Регистрация пользователя",
+			Action: registrationAction,
 			Error:  err.Error(),
 		})
 		return
 	}
 
 	render.JSON(w, r, &registered)
+	return
 }

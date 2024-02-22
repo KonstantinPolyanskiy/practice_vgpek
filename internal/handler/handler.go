@@ -2,6 +2,7 @@ package handler
 
 import (
 	"github.com/go-chi/chi/v5"
+	"go.uber.org/zap"
 	"net/http"
 	"practice_vgpek/internal/handler/authn"
 	"practice_vgpek/internal/handler/reg_key"
@@ -17,14 +18,16 @@ type KeyHandler interface {
 }
 
 type Handler struct {
+	l *zap.Logger
 	AuthnHandler
 	KeyHandler
 }
 
-func New(service service.Service) Handler {
+func New(service service.Service, logger *zap.Logger) Handler {
 	return Handler{
-		AuthnHandler: authn.NewAuthenticationHandler(service.AuthnService),
-		KeyHandler:   reg_key.NewRegKeyHandler(service.KeyService),
+		l:            logger,
+		AuthnHandler: authn.NewAuthenticationHandler(service.AuthnService, logger),
+		KeyHandler:   reg_key.NewRegKeyHandler(service.KeyService, logger),
 	}
 }
 
