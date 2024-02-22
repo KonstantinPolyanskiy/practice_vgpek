@@ -79,6 +79,11 @@ func (h Handler) Registration(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	l.Info("user successfully registered",
+		zap.String("first name", registered.FirstName),
+		zap.Time("registration time", registered.CreatedAt),
+	)
+
 	render.JSON(w, r, &registered)
 	return
 }
