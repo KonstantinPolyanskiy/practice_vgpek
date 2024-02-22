@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 	"practice_vgpek/internal/model/account"
@@ -54,8 +55,14 @@ func (r Repository) SaveAccount(ctx context.Context, savingAcc account.DTO) (acc
 	if err != nil {
 		l.Warn("error insert account", zap.Error(err))
 
+		var pgErr *pgconn.PgError
+
 		if errors.Is(err, pgx.ErrNoRows) {
 			return account.Entity{}, errors.New("сохраненный аккаунт не найден")
+		} else if errors.As(err, &pgErr) {
+			if pgErr.Code == duplicateKeyCodeError {
+				return account.Entity{}, ErrLoginAlreadyExist
+			}
 		}
 		return account.Entity{}, err
 	}

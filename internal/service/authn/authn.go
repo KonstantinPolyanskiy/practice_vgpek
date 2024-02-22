@@ -2,11 +2,13 @@ package authn
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"go.uber.org/zap"
 	"practice_vgpek/internal/model/account"
 	"practice_vgpek/internal/model/person"
 	"practice_vgpek/internal/model/registration_key"
+	accountRepo "practice_vgpek/internal/repository/account"
 	"practice_vgpek/pkg/password"
 )
 
@@ -118,11 +120,20 @@ func (s Service) NewPerson(ctx context.Context, registering person.RegistrationR
 		// Сохраняем регистрируеммый аккаунт пользователя в БД
 		savedAcc, err := s.ar.SaveAccount(ctx, dto.Account)
 		if err != nil {
+			var errMsg string
+
 			l.Warn("error save account in db",
 				zap.String("user login", dto.Account.Login),
 			)
 
-			sendRegistrationResult(resCh, person.RegisteredResp{}, "ошибка сохранения аккаунта")
+			// Проверяем, является ли полученная ошибка - ошибкой сохранения аккаунта
+			if errors.Is(err, accountRepo.ErrLoginAlreadyExist) {
+				errMsg = "такой логин уже существует"
+			} else {
+				errMsg = "неизвестная ошибка сохранения аккаунта"
+			}
+
+			sendRegistrationResult(resCh, person.RegisteredResp{}, errMsg)
 			return
 		}
 
