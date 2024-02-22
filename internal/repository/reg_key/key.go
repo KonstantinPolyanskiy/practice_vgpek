@@ -98,8 +98,6 @@ func (r Repository) RegKeyByBody(ctx context.Context, body string) (registration
 	findRoleQuery := `
 		SELECT * FROM registration_key
 		WHERE body_key = @BodyKey 
-		AND is_valid=true
-		AND invalidation_time IS NULL
 	`
 
 	l.Debug("get key", zap.String("query", findRoleQuery))

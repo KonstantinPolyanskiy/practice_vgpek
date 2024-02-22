@@ -30,7 +30,7 @@ func NewAuthenticationHandler(service Service, logger *zap.Logger) Handler {
 }
 
 func (h Handler) Registration(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 10000*time.Second)
 	defer cancel()
 
 	var registering person.RegistrationReq
