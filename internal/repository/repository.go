@@ -38,7 +38,7 @@ type Repository struct {
 func New(db *pgxpool.Pool, logger *zap.Logger) Repository {
 	return Repository{
 		PersonRepo:  pr.NewPersonRepo(db, logger),
-		KeyRepo:     kr.NewKeyRepo(db),
+		KeyRepo:     kr.NewKeyRepo(db, logger),
 		AccountRepo: ar.NewAccountRepo(db, logger),
 	}
 }
