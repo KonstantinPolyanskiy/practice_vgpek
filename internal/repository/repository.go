@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.uber.org/zap"
 	"practice_vgpek/internal/model/account"
 	"practice_vgpek/internal/model/person"
 	"practice_vgpek/internal/model/registration_key"
@@ -27,15 +28,16 @@ type KeyRepo interface {
 }
 
 type Repository struct {
+	l  *zap.Logger
 	db *pgxpool.Pool
 	PersonRepo
 	KeyRepo
 	AccountRepo
 }
 
-func New(db *pgxpool.Pool) Repository {
+func New(db *pgxpool.Pool, logger *zap.Logger) Repository {
 	return Repository{
-		PersonRepo:  pr.NewPersonRepo(db),
+		PersonRepo:  pr.NewPersonRepo(db, logger),
 		KeyRepo:     kr.NewKeyRepo(db),
 		AccountRepo: ar.NewAccountRepo(db),
 	}
