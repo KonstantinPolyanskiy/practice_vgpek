@@ -3,6 +3,7 @@ package reg_key
 import (
 	"context"
 	"fmt"
+	"go.uber.org/zap"
 	"practice_vgpek/internal/model/registration_key"
 	"practice_vgpek/pkg/rndutils"
 )
@@ -15,9 +16,16 @@ type CreatingKeyResult struct {
 func (s Service) NewKey(ctx context.Context, req registration_key.AddReq) (registration_key.AddResp, error) {
 	resCh := make(chan CreatingKeyResult)
 
+	l := s.l.With(
+		zap.String("action", NewKeyAction),
+		zap.String("layer", "services"),
+	)
+
 	go func() {
 		// Проверяем что указанное количество использований ключа больше 0
 		if req.MaxCountUsages < 0 {
+			l.Warn("incorrect max count usages", zap.Int("body key", req.MaxCountUsages))
+
 			sendNewKeyResult(resCh, registration_key.AddResp{}, "неправильное кол-во использований ключа")
 			return
 		}
@@ -32,6 +40,12 @@ func (s Service) NewKey(ctx context.Context, req registration_key.AddReq) (regis
 		// Сохраняем ключ
 		savedKey, err := s.r.SaveKey(ctx, dto)
 		if err != nil {
+			l.Warn("error save key in db",
+				zap.String("body", dto.Body),
+				zap.Int("max count usages", dto.MaxCountUsages),
+				zap.Int("role id", dto.RoleId),
+			)
+
 			sendNewKeyResult(resCh, registration_key.AddResp{}, "ошибка сохранения ключа")
 			return
 		}

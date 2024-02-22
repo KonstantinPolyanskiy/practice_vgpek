@@ -2,6 +2,7 @@ package reg_key
 
 import (
 	"context"
+	"go.uber.org/zap"
 	"practice_vgpek/internal/model/registration_key"
 )
 
@@ -13,11 +14,13 @@ type Repository interface {
 }
 
 type Service struct {
+	l *zap.Logger
 	r Repository
 }
 
-func NewKeyService(repository Repository) Service {
+func NewKeyService(repository Repository, logger *zap.Logger) Service {
 	return Service{
+		l: logger,
 		r: repository,
 	}
 }

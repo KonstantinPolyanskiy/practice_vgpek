@@ -26,6 +26,6 @@ type Service struct {
 func New(repository repository.Repository, logger *zap.Logger) Service {
 	return Service{
 		AuthnService: authn.NewAuthenticationService(repository.PersonRepo, repository.AccountRepo, repository.KeyRepo, logger),
-		KeyService:   reg_key.NewKeyService(repository.KeyRepo),
+		KeyService:   reg_key.NewKeyService(repository.KeyRepo, logger),
 	}
 }
