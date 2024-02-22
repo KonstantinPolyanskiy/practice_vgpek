@@ -77,7 +77,7 @@ func (s Service) NewPerson(ctx context.Context, registering person.RegistrationR
 		}
 
 		// Проверяем, что ключ еще можно использовать, если нет - инвалидируем
-		if regKey.CurrentCountUsages == regKey.MaxCountUsages {
+		if regKey.CurrentCountUsages <= regKey.MaxCountUsages {
 			if err = s.kr.Invalidate(ctx, regKey.RegKeyId); err != nil {
 				l.Warn("invalidate key error",
 					zap.String("body", regKey.Body),
