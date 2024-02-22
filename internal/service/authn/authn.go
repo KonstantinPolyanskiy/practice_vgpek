@@ -3,6 +3,7 @@ package authn
 import (
 	"context"
 	"fmt"
+	"go.uber.org/zap"
 	"practice_vgpek/internal/model/account"
 	"practice_vgpek/internal/model/person"
 	"practice_vgpek/internal/model/registration_key"
@@ -24,6 +25,7 @@ type AccountRepository interface {
 }
 
 type Service struct {
+	l  *zap.Logger
 	r  Repository
 	kr KeyRepository
 	ar AccountRepository
@@ -32,8 +34,10 @@ type Service struct {
 func NewAuthenticationService(
 	repository Repository,
 	accountRepository AccountRepository,
-	keyRepository KeyRepository) Service {
+	keyRepository KeyRepository,
+	logger *zap.Logger) Service {
 	return Service{
+		l:  logger,
 		r:  repository,
 		kr: keyRepository,
 		ar: accountRepository,

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"go.uber.org/zap"
 	"practice_vgpek/internal/model/person"
 	"practice_vgpek/internal/model/registration_key"
 	"practice_vgpek/internal/repository"
@@ -22,9 +23,9 @@ type Service struct {
 	KeyService
 }
 
-func New(repository repository.Repository) Service {
+func New(repository repository.Repository, logger *zap.Logger) Service {
 	return Service{
-		AuthnService: authn.NewAuthenticationService(repository.PersonRepo, repository.AccountRepo, repository.KeyRepo),
+		AuthnService: authn.NewAuthenticationService(repository.PersonRepo, repository.AccountRepo, repository.KeyRepo, logger),
 		KeyService:   reg_key.NewKeyService(repository.KeyRepo),
 	}
 }

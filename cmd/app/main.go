@@ -44,7 +44,7 @@ func main() {
 		SSLMode:  viper.GetString("db.sslmode"),
 	})
 	repo := repository.New(db)
-	services := service.New(repo)
+	services := service.New(repo, logging)
 	handlers := handler.New(services, logging)
 
 	httpServer := &http.Server{
