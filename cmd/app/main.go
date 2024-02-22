@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 	"log"
 	"net/http"
 	"os"
@@ -43,6 +44,10 @@ func main() {
 		DBName:   viper.GetString("db.dbname"),
 		SSLMode:  viper.GetString("db.sslmode"),
 	})
+	if err != nil {
+		logging.Fatal("error connect to db", zap.Error(err))
+	}
+
 	repo := repository.New(db, logging)
 	services := service.New(repo, logging)
 	handlers := handler.New(services, logging)
