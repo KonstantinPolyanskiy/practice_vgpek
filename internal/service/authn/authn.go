@@ -52,10 +52,18 @@ type RegistrationResult struct {
 func (s Service) NewPerson(ctx context.Context, registering person.RegistrationReq) (person.RegisteredResp, error) {
 	resCh := make(chan RegistrationResult)
 
+	l := s.l.With(
+		zap.String("action", RegistrationAction),
+		zap.String("layer", "services"),
+	)
+
 	go func() {
 		// Получаем ключ, по которому зарегистрированн пользователь
 		regKey, err := s.kr.RegKeyByBody(ctx, registering.RegistrationKey)
 		if err != nil {
+			l.Warn("body key error",
+				zap.String("body key", registering.RegistrationKey),
+			)
 			sendRegistrationResult(resCh, person.RegisteredResp{}, "ошибка с ключем регистрации")
 			return
 		}
@@ -69,6 +77,12 @@ func (s Service) NewPerson(ctx context.Context, registering person.RegistrationR
 		// Проверяем, что ключ еще можно использовать, если нет - инвалидируем
 		if regKey.CurrentCountUsages == regKey.MaxCountUsages {
 			if err = s.kr.Invalidate(ctx, regKey.RegKeyId); err != nil {
+				l.Warn("invalidate key error",
+					zap.String("body", regKey.Body),
+					zap.Int("key id", regKey.RegKeyId),
+					zap.Bool("is valid", regKey.IsValid),
+				)
+
 				sendRegistrationResult(resCh, person.RegisteredResp{}, "ошибка деактивирования ключа")
 				return
 			}
@@ -77,6 +91,11 @@ func (s Service) NewPerson(ctx context.Context, registering person.RegistrationR
 		// Хешируем пароль
 		passwordHash, err := password.Hash(registering.Password)
 		if err != nil {
+			l.Warn("hashing password error",
+				zap.String("password", registering.Password),
+				zap.Error(err),
+			)
+
 			sendRegistrationResult(resCh, person.RegisteredResp{}, "ошибка хеширования пароля")
 			return
 		}
@@ -99,6 +118,10 @@ func (s Service) NewPerson(ctx context.Context, registering person.RegistrationR
 		// Сохраняем регистрируеммый аккаунт пользователя в БД
 		savedAcc, err := s.ar.SaveAccount(ctx, dto.Account)
 		if err != nil {
+			l.Warn("error save account in db",
+				zap.String("user login", dto.Account.Login),
+			)
+
 			sendRegistrationResult(resCh, person.RegisteredResp{}, "ошибка сохранения аккаунта")
 			return
 		}
@@ -106,6 +129,11 @@ func (s Service) NewPerson(ctx context.Context, registering person.RegistrationR
 		// Если аккаунт создан, увеличиваем кол-во регистраций по ключу
 		err = s.kr.IncCountUsages(ctx, regKey.RegKeyId)
 		if err != nil {
+			l.Warn("error inc count key",
+				zap.Int("key id", regKey.RegKeyId),
+				zap.Int("current count", regKey.CurrentCountUsages),
+			)
+
 			sendRegistrationResult(resCh, person.RegisteredResp{}, "ошибка обновления ключа")
 			return
 		}
@@ -113,6 +141,10 @@ func (s Service) NewPerson(ctx context.Context, registering person.RegistrationR
 		// Сохраняем регистируемого пользователя в БД
 		savedPerson, err := s.r.SavePerson(ctx, dto, savedAcc.AccountId)
 		if err != nil {
+			l.Warn("error save person in db",
+				zap.String("full name", dto.FirstName+" "+dto.MiddleName+" "+dto.LastName),
+				zap.Int("account id", savedAcc.AccountId),
+			)
 			sendRegistrationResult(resCh, person.RegisteredResp{}, "ошибка сохранения пользователя")
 			return
 		}

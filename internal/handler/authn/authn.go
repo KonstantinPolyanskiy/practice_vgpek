@@ -38,6 +38,7 @@ func (h Handler) Registration(w http.ResponseWriter, r *http.Request) {
 	l := h.l.With(
 		zap.String("endpoint", r.RequestURI),
 		zap.String("action", authn.RegistrationAction),
+		zap.String("layer", "handlers"),
 	)
 
 	err := json.NewDecoder(r.Body).Decode(&registering)
