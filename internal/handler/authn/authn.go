@@ -43,9 +43,7 @@ func (h Handler) Registration(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&registering)
 	if err != nil {
-		l.Warn("error parse new person request",
-			zap.String("decoder error", err.Error()),
-		)
+		l.Warn("error parse new person request", zap.Error(err))
 
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
 			Action: authn.RegistrationAction,
