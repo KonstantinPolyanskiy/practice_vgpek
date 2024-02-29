@@ -5,15 +5,21 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 	"practice_vgpek/internal/model/account"
+	"practice_vgpek/internal/model/permissions"
 	"practice_vgpek/internal/model/person"
 	"practice_vgpek/internal/model/registration_key"
 	ar "practice_vgpek/internal/repository/account"
 	pr "practice_vgpek/internal/repository/person"
+	"practice_vgpek/internal/repository/rbac"
 	kr "practice_vgpek/internal/repository/reg_key"
 )
 
 type PersonRepo interface {
 	SavePerson(ctx context.Context, savingPerson person.DTO, accountId int) (person.Entity, error)
+}
+
+type ActionRepo interface {
+	SaveAction(ctx context.Context, savingAction permissions.ActionDTO) (permissions.ActionEntity, error)
 }
 
 type AccountRepo interface {
@@ -33,6 +39,7 @@ type Repository struct {
 	PersonRepo
 	KeyRepo
 	AccountRepo
+	ActionRepo
 }
 
 func New(db *pgxpool.Pool, logger *zap.Logger) Repository {
@@ -40,5 +47,6 @@ func New(db *pgxpool.Pool, logger *zap.Logger) Repository {
 		PersonRepo:  pr.NewPersonRepo(db, logger),
 		KeyRepo:     kr.NewKeyRepo(db, logger),
 		AccountRepo: ar.NewAccountRepo(db, logger),
+		ActionRepo:  rbac.NewActionRepo(db, logger),
 	}
 }
