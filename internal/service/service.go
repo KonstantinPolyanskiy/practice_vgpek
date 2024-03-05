@@ -16,8 +16,9 @@ type AuthnService interface {
 	NewPerson(ctx context.Context, registering person.RegistrationReq) (person.RegisteredResp, error)
 }
 
-type ActionService interface {
+type RBACService interface {
 	NewAction(ctx context.Context, addingAction permissions.AddActionReq) (permissions.AddActionResp, error)
+	NewObject(ctx context.Context, addingObject permissions.AddObjectReq) (permissions.AddObjectResp, error)
 }
 
 type KeyService interface {
@@ -27,13 +28,13 @@ type KeyService interface {
 type Service struct {
 	AuthnService
 	KeyService
-	ActionService
+	RBACService
 }
 
 func New(repository repository.Repository, logger *zap.Logger) Service {
 	return Service{
-		AuthnService:  authn.NewAuthenticationService(repository.PersonRepo, repository.AccountRepo, repository.KeyRepo, logger),
-		KeyService:    reg_key.NewKeyService(repository.KeyRepo, logger),
-		ActionService: rbac.NewActionService(repository.ActionRepo, logger),
+		AuthnService: authn.NewAuthenticationService(repository.PersonRepo, repository.AccountRepo, repository.KeyRepo, logger),
+		KeyService:   reg_key.NewKeyService(repository.KeyRepo, logger),
+		RBACService:  rbac.NewRBACService(repository.ActionRepo, repository.ObjectRepo, logger),
 	}
 }
