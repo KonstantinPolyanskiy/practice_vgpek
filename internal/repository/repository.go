@@ -30,6 +30,10 @@ type ObjectRepo interface {
 	SaveObject(ctx context.Context, savingObject permissions.ObjectDTO) (permissions.ObjectEntity, error)
 }
 
+type RoleRepo interface {
+	SaveRole(ctx context.Context, savingRole permissions.RoleDTO) (permissions.RoleEntity, error)
+}
+
 type KeyRepo interface {
 	SaveKey(ctx context.Context, key registration_key.DTO) (registration_key.Entity, error)
 	RegKeyByBody(ctx context.Context, body string) (registration_key.Entity, error)
@@ -45,6 +49,7 @@ type Repository struct {
 	AccountRepo
 	ActionRepo
 	ObjectRepo
+	RoleRepo
 }
 
 func New(db *pgxpool.Pool, logger *zap.Logger) Repository {
@@ -54,5 +59,6 @@ func New(db *pgxpool.Pool, logger *zap.Logger) Repository {
 		AccountRepo: ar.NewAccountRepo(db, logger),
 		ActionRepo:  rbac.NewActionRepo(db, logger),
 		ObjectRepo:  rbac.NewObjectRepo(db, logger),
+		RoleRepo:    rbac.NewRoleRepo(db, logger),
 	}
 }
