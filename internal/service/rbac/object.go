@@ -32,6 +32,8 @@ func (s RBACService) NewObject(ctx context.Context, addingObject permissions.Add
 		// Проверяем что объект вообще введен
 		if addingObject.Name == "" {
 			l.Warn("empty adding object")
+			sendAddObjectResult(resCh, permissions.AddObjectResp{}, "пустое имя объекта")
+			return
 		}
 
 		dto := permissions.ObjectDTO{
