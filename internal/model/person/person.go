@@ -1,6 +1,7 @@
 package person
 
 import (
+	"github.com/google/uuid"
 	"practice_vgpek/internal/model/account"
 	"time"
 )
@@ -30,11 +31,11 @@ type RegisteredResp struct {
 }
 
 type Entity struct {
-	PersonId   int    `db:"person_id"`
-	FirstName  string `db:"first_name"`
-	MiddleName string `db:"middle_name"`
-	LastName   string `db:"last_name"`
-	AccountId  int    `db:"account_id"`
+	PersonUUID uuid.UUID `db:"person_uuid"`
+	FirstName  string    `db:"first_name"`
+	MiddleName string    `db:"middle_name"`
+	LastName   string    `db:"last_name"`
+	AccountId  int       `db:"account_id"`
 }
 
 type DTO struct {

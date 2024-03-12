@@ -3,6 +3,7 @@ package person
 import (
 	"context"
 	"errors"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
@@ -27,16 +28,17 @@ func (r Repository) SavePerson(ctx context.Context, savingPerson person.DTO, acc
 		zap.String("layer", "repo"),
 	)
 
-	var insertedPersonId int
+	var insertedPersonUUID uuid.UUID
 
 	insertPersonQuery := `
-	INSERT INTO person (account_id, first_name, middle_name, last_name)
-	VALUES (@AccountId, @FirstName, @MiddleName, @LastName)
-	RETURNING person_id
+	INSERT INTO person (person_uuid, account_id, first_name, middle_name, last_name)
+	VALUES (@PersonUUID, @AccountId, @FirstName, @MiddleName, @LastName)
+	RETURNING person_uuid
 `
 	l.Debug("insert person", zap.String("query", insertPersonQuery))
 
 	args := pgx.NamedArgs{
+		"PersonUUID": uuid.New(),
 		"AccountId":  accountId,
 		"FirstName":  savingPerson.FirstName,
 		"MiddleName": savingPerson.MiddleName,
@@ -51,7 +53,7 @@ func (r Repository) SavePerson(ctx context.Context, savingPerson person.DTO, acc
 	)
 
 	// Если запрос не возвращает Id, то пользователь не создан
-	err := r.db.QueryRow(ctx, insertPersonQuery, args).Scan(&insertedPersonId)
+	err := r.db.QueryRow(ctx, insertPersonQuery, args).Scan(&insertedPersonUUID)
 	if err != nil {
 		l.Warn("error insert person", zap.Error(err))
 
@@ -63,12 +65,12 @@ func (r Repository) SavePerson(ctx context.Context, savingPerson person.DTO, acc
 
 	getPersonQuery := `
 	SELECT * FROM person
-	WHERE account_id=$1
+	WHERE person_uuid=$1
 `
 
 	l.Debug("get person", zap.String("query", getPersonQuery))
 
-	row, err := r.db.Query(ctx, getPersonQuery, insertedPersonId)
+	row, err := r.db.Query(ctx, getPersonQuery, insertedPersonUUID)
 	if err != nil {
 		l.Warn("error get inserted person", zap.Error(err))
 
