@@ -63,9 +63,7 @@ func (s Service) NewPerson(ctx context.Context, registering person.RegistrationR
 		// Получаем ключ, по которому зарегистрированн пользователь
 		regKey, err := s.kr.RegKeyByBody(ctx, registering.RegistrationKey)
 		if err != nil {
-			l.Warn("body key error",
-				zap.String("body key", registering.RegistrationKey),
-			)
+			l.Warn("body key error", zap.String("body key", registering.RegistrationKey))
 			sendRegistrationResult(resCh, person.RegisteredResp{}, "ошибка с ключем регистрации")
 			return
 		}
@@ -77,7 +75,7 @@ func (s Service) NewPerson(ctx context.Context, registering person.RegistrationR
 		}
 
 		// Проверяем, что ключ еще можно использовать, если нет - инвалидируем
-		if regKey.CurrentCountUsages <= regKey.MaxCountUsages {
+		if regKey.CurrentCountUsages >= regKey.MaxCountUsages {
 			if err = s.kr.Invalidate(ctx, regKey.RegKeyId); err != nil {
 				l.Warn("invalidate key error",
 					zap.String("body", regKey.Body),
@@ -122,9 +120,7 @@ func (s Service) NewPerson(ctx context.Context, registering person.RegistrationR
 		if err != nil {
 			var errMsg string
 
-			l.Warn("error save account in db",
-				zap.String("user login", dto.Account.Login),
-			)
+			l.Warn("error save account in db", zap.String("user login", dto.Account.Login))
 
 			// Проверяем, является ли полученная ошибка - ошибкой сохранения аккаунта
 			if errors.Is(err, accountRepo.ErrLoginAlreadyExist) {

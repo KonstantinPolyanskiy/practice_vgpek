@@ -53,26 +53,28 @@ func (h Handler) Registration(w http.ResponseWriter, r *http.Request) {
 	}
 
 	registered, err := h.s.NewPerson(ctx, registering)
-	if err != nil && errors.Is(err, context.DeadlineExceeded) {
-		apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
-			Action: authn.RegistrationAction,
-			Error:  "Таймаут",
-		})
-		return
-	} else if err != nil {
-		l.Warn("error registering user",
-			zap.String("Ключ регистрации", registering.RegistrationKey),
-		)
-		l.Debug("registering data",
-			zap.String("full name", registering.FirstName+" "+registering.MiddleName+" "+registering.MiddleName),
-			zap.String("login", registering.Login),
-		)
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
+				Action: authn.RegistrationAction,
+				Error:  "Таймаут",
+			})
+			return
+		} else {
+			l.Warn("error registering user",
+				zap.String("Ключ регистрации", registering.RegistrationKey),
+			)
+			l.Debug("registering data",
+				zap.String("full name", registering.FirstName+" "+registering.MiddleName+" "+registering.MiddleName),
+				zap.String("login", registering.Login),
+			)
 
-		apperr.New(w, r, http.StatusInternalServerError, apperr.AppError{
-			Action: authn.RegistrationAction,
-			Error:  err.Error(),
-		})
-		return
+			apperr.New(w, r, http.StatusInternalServerError, apperr.AppError{
+				Action: authn.RegistrationAction,
+				Error:  err.Error(),
+			})
+			return
+		}
 	}
 
 	l.Info("user successfully registered",
