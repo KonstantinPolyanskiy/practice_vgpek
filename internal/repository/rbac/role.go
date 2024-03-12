@@ -9,6 +9,11 @@ import (
 	"practice_vgpek/internal/model/permissions"
 )
 
+var (
+	ManyRoleErr  = errors.New("неоднозначный результат")
+	RoleNotFound = errors.New("роль не найдена")
+)
+
 type RoleRepository struct {
 	l  *zap.Logger
 	db *pgxpool.Pool
@@ -78,4 +83,35 @@ func (rr RoleRepository) SaveRole(ctx context.Context, savingRole permissions.Ro
 	}
 
 	return savedRole, nil
+}
+
+func (ar ActionRepository) RoleByName(ctx context.Context, name string) (permissions.RoleEntity, error) {
+	l := ar.l.With(
+		zap.String("executing query name", "get role by name"),
+		zap.String("layer", "repo"),
+	)
+
+	var role permissions.RoleEntity
+
+	getActionQuery := `SELECT * FROM internal_role WHERE role_name=$1`
+
+	err := ar.db.QueryRow(ctx, getActionQuery, name).Scan(&role)
+	if err != nil {
+		l.Warn("error get role by name",
+			zap.String("role name", name),
+			zap.Error(err),
+		)
+
+		if errors.Is(err, pgx.ErrTooManyRows) {
+			return permissions.RoleEntity{}, ManyRoleErr
+		}
+
+		if errors.Is(err, pgx.ErrNoRows) {
+			return permissions.RoleEntity{}, RoleNotFound
+		}
+
+		return permissions.RoleEntity{}, errors.New("unknown error")
+	}
+
+	return role, nil
 }

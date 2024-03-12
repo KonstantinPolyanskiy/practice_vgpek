@@ -9,6 +9,11 @@ import (
 	"practice_vgpek/internal/model/permissions"
 )
 
+var (
+	ManyObjectErr     = errors.New("неоднозначный результат")
+	ObjectNotFoundErr = errors.New("объект действия не найден")
+)
+
 type ObjectRepository struct {
 	l  *zap.Logger
 	db *pgxpool.Pool
@@ -78,4 +83,35 @@ func (or ObjectRepository) SaveObject(ctx context.Context, savingObject permissi
 	}
 
 	return savedObject, nil
+}
+
+func (ar ActionRepository) ObjectByName(ctx context.Context, name string) (permissions.ObjectEntity, error) {
+	l := ar.l.With(
+		zap.String("executing query name", "get object by name"),
+		zap.String("layer", "repo"),
+	)
+
+	var object permissions.ObjectEntity
+
+	getActionQuery := `SELECT * FROM internal_object WHERE internal_object_name=$1`
+
+	err := ar.db.QueryRow(ctx, getActionQuery, name).Scan(&object)
+	if err != nil {
+		l.Warn("error get object by name",
+			zap.String("object name", name),
+			zap.Error(err),
+		)
+
+		if errors.Is(err, pgx.ErrTooManyRows) {
+			return permissions.ObjectEntity{}, ManyObjectErr
+		}
+
+		if errors.Is(err, pgx.ErrNoRows) {
+			return permissions.ObjectEntity{}, ManyActionErr
+		}
+
+		return permissions.ObjectEntity{}, errors.New("unknown error")
+	}
+
+	return object, nil
 }

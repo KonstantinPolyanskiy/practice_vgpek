@@ -9,6 +9,11 @@ import (
 	"practice_vgpek/internal/model/permissions"
 )
 
+var (
+	ManyActionErr     = errors.New("неоднозначный результат")
+	ActionNotFoundErr = errors.New("действие не найдено")
+)
+
 type ActionRepository struct {
 	l  *zap.Logger
 	db *pgxpool.Pool
@@ -77,4 +82,35 @@ func (ar ActionRepository) SaveAction(ctx context.Context, savingAction permissi
 	}
 
 	return savedAction, nil
+}
+
+func (ar ActionRepository) ActionByName(ctx context.Context, name string) (permissions.ActionEntity, error) {
+	l := ar.l.With(
+		zap.String("executing query name", "get action by name"),
+		zap.String("layer", "repo"),
+	)
+
+	var action permissions.ActionEntity
+
+	getActionQuery := `SELECT * FROM internal_action WHERE internal_action_name=$1`
+
+	err := ar.db.QueryRow(ctx, getActionQuery, name).Scan(&action)
+	if err != nil {
+		l.Warn("error get action by name",
+			zap.String("action name", name),
+			zap.Error(err),
+		)
+
+		if errors.Is(err, pgx.ErrTooManyRows) {
+			return permissions.ActionEntity{}, ManyActionErr
+		}
+
+		if errors.Is(err, pgx.ErrNoRows) {
+			return permissions.ActionEntity{}, ActionNotFoundErr
+		}
+
+		return permissions.ActionEntity{}, errors.New("unknown error")
+	}
+
+	return action, nil
 }
