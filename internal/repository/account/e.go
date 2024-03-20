@@ -8,4 +8,5 @@ var (
 
 var (
 	ErrLoginAlreadyExist = errors.New("login already exist")
+	ErrAccountNotFound   = errors.New("account not found")
 )

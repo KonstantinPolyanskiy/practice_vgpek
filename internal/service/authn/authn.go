@@ -4,15 +4,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/golang-jwt/jwt/v5"
 	"go.uber.org/zap"
 	"practice_vgpek/internal/model/account"
 	"practice_vgpek/internal/model/person"
 	"practice_vgpek/internal/model/registration_key"
 	accountRepo "practice_vgpek/internal/repository/account"
 	"practice_vgpek/pkg/password"
+	"time"
 )
 
-type Repository interface {
+const testKey = "uvm23458IKT345fg4TB3"
+
+type PersonRepository interface {
 	SavePerson(ctx context.Context, savingPerson person.DTO, accountId int) (person.Entity, error)
 }
 
@@ -24,23 +28,24 @@ type KeyRepository interface {
 
 type AccountRepository interface {
 	SaveAccount(ctx context.Context, savingAcc account.DTO) (account.Entity, error)
+	AccountByLogin(ctx context.Context, login string) (account.Entity, error)
 }
 
 type Service struct {
 	l  *zap.Logger
-	r  Repository
+	pr PersonRepository
 	kr KeyRepository
 	ar AccountRepository
 }
 
 func NewAuthenticationService(
-	repository Repository,
+	repository PersonRepository,
 	accountRepository AccountRepository,
 	keyRepository KeyRepository,
 	logger *zap.Logger) Service {
 	return Service{
 		l:  logger,
-		r:  repository,
+		pr: repository,
 		kr: keyRepository,
 		ar: accountRepository,
 	}
@@ -51,11 +56,16 @@ type RegistrationResult struct {
 	Error            error
 }
 
+type LogInResult struct {
+	CreatedToken person.LogInResp
+	Error        error
+}
+
 func (s Service) NewPerson(ctx context.Context, registering person.RegistrationReq) (person.RegisteredResp, error) {
 	resCh := make(chan RegistrationResult)
 
 	l := s.l.With(
-		zap.String("action", RegistrationAction),
+		zap.String("action", RegistrationOperation),
 		zap.String("layer", "services"),
 	)
 
@@ -68,7 +78,7 @@ func (s Service) NewPerson(ctx context.Context, registering person.RegistrationR
 			return
 		}
 
-		// Проверка что ключ валиден, если нет - возвращаем ошибку
+		// Проверка, что ключ валиден, если нет - возвращаем ошибку
 		if !regKey.IsValid {
 			sendRegistrationResult(resCh, person.RegisteredResp{}, "невалидный ключ")
 			return
@@ -146,7 +156,7 @@ func (s Service) NewPerson(ctx context.Context, registering person.RegistrationR
 		}
 
 		// Сохраняем регистируемого пользователя в БД
-		savedPerson, err := s.r.SavePerson(ctx, dto, savedAcc.AccountId)
+		savedPerson, err := s.pr.SavePerson(ctx, dto, savedAcc.AccountId)
 		if err != nil {
 			l.Warn("error save person in db",
 				zap.String("full name", dto.FirstName+" "+dto.MiddleName+" "+dto.LastName),
@@ -181,6 +191,74 @@ func (s Service) NewPerson(ctx context.Context, registering person.RegistrationR
 	}
 }
 
+func (s Service) NewToken(ctx context.Context, logIn person.LogInReq) (person.LogInResp, error) {
+	resCh := make(chan LogInResult)
+
+	l := s.l.With(
+		zap.String("action", LoginOperation),
+		zap.String("layer", "services"),
+	)
+
+	go func() {
+		acc, err := s.ar.AccountByLogin(ctx, logIn.Login)
+		if err != nil {
+			var errMsg string
+
+			l.Warn("error get account from db", zap.String("user login", logIn.Login))
+
+			// Проверяем, является ли полученная ошибка - ошибка получения аккаунта
+			if errors.Is(err, accountRepo.ErrAccountNotFound) {
+				errMsg = "аккаунт не найден"
+			} else {
+				errMsg = "неизвестная ошибка получения аккаунта"
+			}
+
+			sendCreatedTokenResult(resCh, person.LogInResp{}, errMsg)
+			return
+		}
+
+		// Если не совпадает - пароль не верен
+		if !password.CheckHash(logIn.Password, acc.PasswordHash) {
+			l.Debug("user enter incorrect data",
+				zap.String("login", logIn.Login),
+				zap.String("password", logIn.Password),
+			)
+
+			sendCreatedTokenResult(resCh, person.LogInResp{}, "неправильный логин/пароль")
+			return
+		}
+
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, &jwt.MapClaims{
+			"exp":        time.Now().Add(time.Hour).Unix(),
+			"account_id": acc.AccountId,
+		})
+
+		signedToken, err := token.SignedString([]byte(testKey))
+		if err != nil {
+			l.Warn("signing token error", zap.Error(err))
+
+			sendCreatedTokenResult(resCh, person.LogInResp{}, "ошибка подписи ключа")
+			return
+		}
+
+		resp := person.LogInResp{
+			Token: signedToken,
+		}
+
+		sendCreatedTokenResult(resCh, resp, "")
+		return
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return person.LogInResp{}, ctx.Err()
+		case result := <-resCh:
+			return result.CreatedToken, result.Error
+		}
+	}
+}
+
 func sendRegistrationResult(resCh chan RegistrationResult, resp person.RegisteredResp, errMsg string) {
 	var err error
 
@@ -191,5 +269,18 @@ func sendRegistrationResult(resCh chan RegistrationResult, resp person.Registere
 	resCh <- RegistrationResult{
 		RegisteredPerson: resp,
 		Error:            err,
+	}
+}
+
+func sendCreatedTokenResult(resCh chan LogInResult, resp person.LogInResp, errMsg string) {
+	var err error
+
+	if errMsg != "" {
+		err = fmt.Errorf(errMsg)
+	}
+
+	resCh <- LogInResult{
+		CreatedToken: resp,
+		Error:        err,
 	}
 }

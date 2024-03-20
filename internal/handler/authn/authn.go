@@ -15,6 +15,7 @@ import (
 
 type Service interface {
 	NewPerson(ctx context.Context, registering person.RegistrationReq) (person.RegisteredResp, error)
+	NewToken(ctx context.Context, logIn person.LogInReq) (person.LogInResp, error)
 }
 
 type Handler struct {
@@ -37,7 +38,7 @@ func (h Handler) Registration(w http.ResponseWriter, r *http.Request) {
 
 	l := h.l.With(
 		zap.String("endpoint", r.RequestURI),
-		zap.String("action", authn.RegistrationAction),
+		zap.String("action", authn.RegistrationOperation),
 		zap.String("layer", "handlers"),
 	)
 
@@ -46,7 +47,7 @@ func (h Handler) Registration(w http.ResponseWriter, r *http.Request) {
 		l.Warn("error parse new person request", zap.Error(err))
 
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
-			Action: authn.RegistrationAction,
+			Action: authn.RegistrationOperation,
 			Error:  "Преобразование запроса на регистрацию",
 		})
 		return
@@ -56,21 +57,15 @@ func (h Handler) Registration(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
-				Action: authn.RegistrationAction,
+				Action: authn.RegistrationOperation,
 				Error:  "Таймаут",
 			})
 			return
 		} else {
-			l.Warn("error registering user",
-				zap.String("Ключ регистрации", registering.RegistrationKey),
-			)
-			l.Debug("registering data",
-				zap.String("full name", registering.FirstName+" "+registering.MiddleName+" "+registering.MiddleName),
-				zap.String("login", registering.Login),
-			)
+			l.Warn("error registering user", zap.String("Ключ регистрации", registering.RegistrationKey))
 
 			apperr.New(w, r, http.StatusInternalServerError, apperr.AppError{
-				Action: authn.RegistrationAction,
+				Action: authn.RegistrationOperation,
 				Error:  err.Error(),
 			})
 			return
@@ -84,4 +79,49 @@ func (h Handler) Registration(w http.ResponseWriter, r *http.Request) {
 
 	render.JSON(w, r, &registered)
 	return
+}
+
+func (h Handler) Login(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
+
+	var logIn person.LogInReq
+
+	l := h.l.With(
+		zap.String("endpoint", r.RequestURI),
+		zap.String("action", authn.LoginOperation),
+		zap.String("layer", "handlers"),
+	)
+
+	err := json.NewDecoder(r.Body).Decode(&logIn)
+	if err != nil {
+		l.Warn("error parse login request", zap.Error(err))
+
+		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
+			Action: authn.LoginOperation,
+			Error:  "Преобразование запроса на вход",
+		})
+		return
+	}
+
+	token, err := h.s.NewToken(ctx, logIn)
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
+				Action: authn.LoginOperation,
+				Error:  "Таймаут",
+			})
+			return
+		} else {
+			l.Warn("error login user", zap.String("login", logIn.Login))
+
+			apperr.New(w, r, http.StatusInternalServerError, apperr.AppError{
+				Action: authn.LoginOperation,
+				Error:  err.Error(),
+			})
+			return
+		}
+	}
+
+	render.JSON(w, r, token)
 }

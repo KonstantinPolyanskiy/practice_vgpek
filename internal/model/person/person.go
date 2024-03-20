@@ -12,6 +12,15 @@ type Personality struct {
 	LastName   string `json:"last_name"`
 }
 
+type LogInReq struct {
+	Login    string `json:"login" binding:"required"`
+	Password string `json:"password" binding:"required"`
+}
+
+type LogInResp struct {
+	Token string `json:"token"`
+}
+
 type Credentials struct {
 	Login    string `json:"login"`
 	Password string `json:"password"`

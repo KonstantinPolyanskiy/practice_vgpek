@@ -14,6 +14,7 @@ import (
 
 type AuthnService interface {
 	NewPerson(ctx context.Context, registering person.RegistrationReq) (person.RegisteredResp, error)
+	NewToken(ctx context.Context, logIn person.LogInReq) (person.LogInResp, error)
 }
 
 type RBACService interface {

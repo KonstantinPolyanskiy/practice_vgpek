@@ -46,7 +46,7 @@ func (r Repository) SaveAccount(ctx context.Context, savingAcc account.DTO) (acc
 
 	l.Debug("args in query",
 		zap.String("login", savingAcc.Login),
-		zap.Int("role id", savingAcc.RoleId),
+		zap.Int("rbac id", savingAcc.RoleId),
 		zap.Int("key id", savingAcc.RegKeyId),
 	)
 
@@ -91,4 +91,40 @@ func (r Repository) SaveAccount(ctx context.Context, savingAcc account.DTO) (acc
 	}
 
 	return savedAcc, nil
+}
+
+func (r Repository) AccountByLogin(ctx context.Context, login string) (account.Entity, error) {
+	l := r.l.With(
+		zap.String("executing query name", "get account by credentials"),
+		zap.String("layer", "repo"),
+	)
+
+	getAccountQuery := `SELECT * FROM account WHERE login=$1`
+
+	row, err := r.db.Query(ctx, getAccountQuery, login)
+	if err != nil {
+		l.Warn("error get account by credentials",
+			zap.String("login", login),
+			zap.Error(err),
+		)
+
+		if errors.Is(err, pgx.ErrTooManyRows) {
+			return account.Entity{}, ErrAccountNotFound
+		}
+
+		if errors.Is(err, pgx.ErrNoRows) {
+			return account.Entity{}, ErrAccountNotFound
+		}
+
+		return account.Entity{}, errors.New("unknown error")
+	}
+
+	acc, err := pgx.CollectOneRow(row, pgx.RowToStructByName[account.Entity])
+	if err != nil {
+		l.Warn("error collect account in struct", zap.Error(err))
+
+		return account.Entity{}, err
+	}
+
+	return acc, nil
 }

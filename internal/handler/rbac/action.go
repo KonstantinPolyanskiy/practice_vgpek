@@ -12,23 +12,7 @@ import (
 	"time"
 )
 
-type ActionService interface {
-	NewAction(ctx context.Context, addingAction permissions.AddActionReq) (permissions.AddActionResp, error)
-}
-
-type ActionHandler struct {
-	l *zap.Logger
-	s ActionService
-}
-
-func NewActionHandler(service ActionService, logger *zap.Logger) ActionHandler {
-	return ActionHandler{
-		l: logger,
-		s: service,
-	}
-}
-
-func (h ActionHandler) AddAction(w http.ResponseWriter, r *http.Request) {
+func (h AccessHandler) AddAction(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 

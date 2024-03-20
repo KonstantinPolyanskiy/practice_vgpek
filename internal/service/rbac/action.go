@@ -15,24 +15,12 @@ type ActionRepository interface {
 	SaveAction(ctx context.Context, savingAction permissions.ActionDTO) (permissions.ActionEntity, error)
 }
 
-type ActionService struct {
-	l  *zap.Logger
-	ar ActionRepository
-}
-
-func NewActionService(actionRepo ActionRepository, logger *zap.Logger) ActionService {
-	return ActionService{
-		ar: actionRepo,
-		l:  logger,
-	}
-}
-
 type AddedActionResult struct {
 	Action permissions.AddActionResp
 	Error  error
 }
 
-func (s ActionService) NewAction(ctx context.Context, addingAction permissions.AddActionReq) (permissions.AddActionResp, error) {
+func (s RBACService) NewAction(ctx context.Context, addingAction permissions.AddActionReq) (permissions.AddActionResp, error) {
 	resCh := make(chan AddedActionResult)
 
 	l := s.l.With(
@@ -63,6 +51,7 @@ func (s ActionService) NewAction(ctx context.Context, addingAction permissions.A
 
 		l.Info("action successfully save", zap.String("action name", added.Name))
 
+		// Формируем ответ
 		resp := permissions.AddActionResp{
 			Name: added.Name,
 		}

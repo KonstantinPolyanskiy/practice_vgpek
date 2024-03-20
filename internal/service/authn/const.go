@@ -1,5 +1,6 @@
 package authn
 
 var (
-	RegistrationAction = "регистрация пользователя"
+	RegistrationOperation = "регистрация пользователя"
+	LoginOperation        = "вход пользователя"
 )

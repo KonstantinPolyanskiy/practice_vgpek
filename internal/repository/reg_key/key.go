@@ -47,7 +47,7 @@ func (r Repository) SaveKey(ctx context.Context, key registration_key.DTO) (regi
 	}
 
 	l.Debug("args in query",
-		zap.Int("role id", key.RoleId),
+		zap.Int("rbac id", key.RoleId),
 		zap.String("body key", key.Body),
 		zap.Int("max count", key.MaxCountUsages),
 		zap.Any("current count", args["CurrentCountUsages"]),
@@ -81,7 +81,7 @@ func (r Repository) SaveKey(ctx context.Context, key registration_key.DTO) (regi
 
 	savedKey, err := pgx.CollectOneRow(row, pgx.RowToStructByName[registration_key.Entity])
 	if err != nil {
-		l.Warn("error collect key in struct")
+		l.Warn("error collect key in struct", zap.Error(err))
 
 		return registration_key.Entity{}, err
 	}

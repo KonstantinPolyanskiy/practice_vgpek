@@ -43,7 +43,7 @@ func (s Service) NewKey(ctx context.Context, req registration_key.AddReq) (regis
 			l.Warn("error save key in db",
 				zap.String("body", dto.Body),
 				zap.Int("max count usages", dto.MaxCountUsages),
-				zap.Int("role id", dto.RoleId),
+				zap.Int("rbac id", dto.RoleId),
 			)
 
 			sendNewKeyResult(resCh, registration_key.AddResp{}, "ошибка сохранения ключа")

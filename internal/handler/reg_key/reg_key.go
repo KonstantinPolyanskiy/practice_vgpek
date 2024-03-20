@@ -28,8 +28,9 @@ func NewRegKeyHandler(service Service, logger *zap.Logger) Handler {
 	}
 }
 
+// AddKey REST хэндлер для создания ключа регистрации
 func (h Handler) AddKey(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 300000*time.Second)
 	defer cancel()
 
 	var addingKey registration_key.AddReq

@@ -24,6 +24,7 @@ type ActionRepo interface {
 
 type AccountRepo interface {
 	SaveAccount(ctx context.Context, savingAcc account.DTO) (account.Entity, error)
+	AccountByLogin(ctx context.Context, login string) (account.Entity, error)
 }
 
 type ObjectRepo interface {
