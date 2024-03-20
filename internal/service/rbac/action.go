@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	AddAction = "добавление права действия в системе"
+	AddOperation = "добавление права действия в системе"
 )
 
 type ActionRepository interface {
@@ -24,7 +24,7 @@ func (s RBACService) NewAction(ctx context.Context, addingAction permissions.Add
 	resCh := make(chan AddedActionResult)
 
 	l := s.l.With(
-		zap.String("action", AddAction),
+		zap.String("action", AddOperation),
 		zap.String("layer", "services"),
 	)
 
