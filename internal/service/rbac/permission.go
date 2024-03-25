@@ -28,6 +28,6 @@ func (s RBACService) NewPermission(ctx context.Context, addingPerm permissions.A
 	)
 
 	go func() {
-		saved, err := s.pr.SavePermission()
+		saved, err := s.pr.SavePermission()/
 	}()
 }
