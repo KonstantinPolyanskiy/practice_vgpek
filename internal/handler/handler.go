@@ -23,6 +23,7 @@ type RBACHandler interface {
 	AddAction(w http.ResponseWriter, r *http.Request)
 	AddObject(w http.ResponseWriter, r *http.Request)
 	AddRole(w http.ResponseWriter, r *http.Request)
+	AddPermission(w http.ResponseWriter, r *http.Request)
 }
 
 type Handler struct {
@@ -66,6 +67,10 @@ func (h Handler) Init() *chi.Mux {
 
 	r.Route("/role", func(r chi.Router) {
 		r.Post("/", h.RBACHandler.AddRole)
+	})
+
+	r.Route("/permissions", func(r chi.Router) {
+		r.Post("/", h.RBACHandler.AddPermission)
 	})
 
 	return r

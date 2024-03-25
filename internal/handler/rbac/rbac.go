@@ -10,6 +10,7 @@ type RBACService interface {
 	NewAction(ctx context.Context, addingAction permissions.AddActionReq) (permissions.AddActionResp, error)
 	NewObject(ctx context.Context, addingObject permissions.AddObjectReq) (permissions.AddObjectResp, error)
 	NewRole(ctx context.Context, addingRole permissions.AddRoleReq) (permissions.AddRoleResp, error)
+	NewPermission(ctx context.Context, addingPermission permissions.AddPermReq) (permissions.AddPermResp, error)
 }
 
 type AccessHandler struct {
