@@ -21,7 +21,7 @@ func NewPermissionRepository(db *pgxpool.Pool, logger *zap.Logger) PermissionRep
 
 func (r PermissionRepository) SavePermission(ctx context.Context, roleId, objectId int, actionsId []int) error {
 	l := r.l.With(
-		zap.String("executing query name", "save permissions"),
+		zap.String("executing query name", "save permission"),
 		zap.String("layer", "repo"),
 	)
 
