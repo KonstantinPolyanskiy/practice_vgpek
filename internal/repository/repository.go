@@ -18,6 +18,10 @@ type PersonRepo interface {
 	SavePerson(ctx context.Context, savingPerson person.DTO, accountId int) (person.Entity, error)
 }
 
+type PermissionRepo interface {
+	SavePermission(ctx context.Context, roleId, objectId int, actionsId []int) error
+}
+
 type ActionRepo interface {
 	SaveAction(ctx context.Context, savingAction permissions.ActionDTO) (permissions.ActionEntity, error)
 }
@@ -51,15 +55,17 @@ type Repository struct {
 	ActionRepo
 	ObjectRepo
 	RoleRepo
+	PermissionRepo
 }
 
 func New(db *pgxpool.Pool, logger *zap.Logger) Repository {
 	return Repository{
-		PersonRepo:  pr.NewPersonRepo(db, logger),
-		KeyRepo:     kr.NewKeyRepo(db, logger),
-		AccountRepo: ar.NewAccountRepo(db, logger),
-		ActionRepo:  rbac.NewActionRepo(db, logger),
-		ObjectRepo:  rbac.NewObjectRepo(db, logger),
-		RoleRepo:    rbac.NewRoleRepo(db, logger),
+		PersonRepo:     pr.NewPersonRepo(db, logger),
+		KeyRepo:        kr.NewKeyRepo(db, logger),
+		AccountRepo:    ar.NewAccountRepo(db, logger),
+		ActionRepo:     rbac.NewActionRepo(db, logger),
+		ObjectRepo:     rbac.NewObjectRepo(db, logger),
+		RoleRepo:       rbac.NewRoleRepo(db, logger),
+		PermissionRepo: rbac.NewPermissionRepository(db, logger),
 	}
 }
