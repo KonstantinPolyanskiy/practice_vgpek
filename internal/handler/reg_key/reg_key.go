@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 	"net/http"
 	"practice_vgpek/internal/model/registration_key"
+	"practice_vgpek/internal/service/reg_key"
 	"practice_vgpek/pkg/apperr"
 	"time"
 )
@@ -30,7 +31,7 @@ func NewRegKeyHandler(service Service, logger *zap.Logger) Handler {
 
 // AddKey REST хэндлер для создания ключа регистрации
 func (h Handler) AddKey(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 300000*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 3000*time.Second)
 	defer cancel()
 
 	var addingKey registration_key.AddReq
@@ -53,7 +54,13 @@ func (h Handler) AddKey(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	} else if err != nil {
-		apperr.New(w, r, http.StatusInternalServerError, apperr.AppError{
+		status := http.StatusInternalServerError
+
+		if errors.Is(err, reg_key.ErrDontHavePermission) {
+			status = http.StatusForbidden
+		}
+
+		apperr.New(w, r, status, apperr.AppError{
 			Action: "Добавление ключа",
 			Error:  err.Error(),
 		})
