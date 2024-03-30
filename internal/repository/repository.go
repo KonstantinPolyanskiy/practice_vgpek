@@ -20,6 +20,7 @@ type PersonRepo interface {
 
 type PermissionRepo interface {
 	SavePermission(ctx context.Context, roleId, objectId int, actionsId []int) error
+	PermissionsByRoleId(ctx context.Context, roleId int) ([]permissions.PermissionEntity, error)
 }
 
 type ActionRepo interface {
@@ -29,6 +30,7 @@ type ActionRepo interface {
 type AccountRepo interface {
 	SaveAccount(ctx context.Context, savingAcc account.DTO) (account.Entity, error)
 	AccountByLogin(ctx context.Context, login string) (account.Entity, error)
+	AccountById(ctx context.Context, id int) (account.Entity, error)
 }
 
 type ObjectRepo interface {
@@ -37,11 +39,14 @@ type ObjectRepo interface {
 
 type RoleRepo interface {
 	SaveRole(ctx context.Context, savingRole permissions.RoleDTO) (permissions.RoleEntity, error)
+	RoleByName(ctx context.Context, name string) (permissions.RoleEntity, error)
+	RoleById(ctx context.Context, id int) (permissions.RoleEntity, error)
 }
 
 type KeyRepo interface {
 	SaveKey(ctx context.Context, key registration_key.DTO) (registration_key.Entity, error)
 	RegKeyByBody(ctx context.Context, body string) (registration_key.Entity, error)
+	RegKeyById(ctx context.Context, id int) (registration_key.Entity, error)
 	IncCountUsages(ctx context.Context, keyId int) error
 	Invalidate(ctx context.Context, keyId int) error
 }
