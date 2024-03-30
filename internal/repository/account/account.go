@@ -128,3 +128,31 @@ func (r Repository) AccountByLogin(ctx context.Context, login string) (account.E
 
 	return acc, nil
 }
+
+func (r Repository) AccountById(ctx context.Context, id int) (account.Entity, error) {
+	l := r.l.With(
+		zap.String("executing query name", "get account by id"),
+		zap.String("layer", "repo"),
+	)
+
+	getAccountQuery := `SELECT * FROM account WHERE account.account_id=$1`
+
+	row, err := r.db.Query(ctx, getAccountQuery, id)
+	if err != nil {
+		l.Warn("error get account by id",
+			zap.Int("Id account", id),
+			zap.Error(err),
+		)
+
+		return account.Entity{}, err
+	}
+
+	acc, err := pgx.CollectOneRow(row, pgx.RowToStructByName[account.Entity])
+	if err != nil {
+		l.Warn("error collect account in struct", zap.Error(err))
+
+		return account.Entity{}, err
+	}
+
+	return acc, nil
+}
