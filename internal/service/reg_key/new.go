@@ -8,6 +8,11 @@ import (
 	"practice_vgpek/pkg/rndutils"
 )
 
+const (
+	ObjectName = "KEY"
+	ActionName = "ADD"
+)
+
 type CreatingKeyResult struct {
 	CreatedKey registration_key.AddResp
 	Error      error
@@ -27,6 +32,24 @@ func (s Service) NewKey(ctx context.Context, req registration_key.AddReq) (regis
 			l.Warn("incorrect max count usages", zap.Int("body key", req.MaxCountUsages))
 
 			sendNewKeyResult(resCh, registration_key.AddResp{}, "неправильное кол-во использований ключа")
+			return
+		}
+
+		// Получаем ID аккаунта
+		accountId := ctx.Value("AccountId").(int)
+
+		// Получаем роль по id аккаунта
+		role, err := s.accountMediator.RoleByAccountId(ctx, accountId)
+		if err != nil {
+			sendNewKeyResult(resCh, registration_key.AddResp{}, err.Error())
+			return
+		}
+
+		// Проверяем, есть ли доступ
+		hasAccess, err := s.accountMediator.HasAccess(ctx, role.Id, ObjectName, ActionName)
+		if err != nil || !hasAccess {
+			s.l.Warn("возникла ошибка при проверке прав", zap.Error(err))
+			sendNewKeyResult(resCh, registration_key.AddResp{}, ErrDontHavePermission.Error())
 			return
 		}
 

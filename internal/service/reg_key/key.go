@@ -3,6 +3,7 @@ package reg_key
 import (
 	"context"
 	"go.uber.org/zap"
+	"practice_vgpek/internal/model/permissions"
 	"practice_vgpek/internal/model/registration_key"
 )
 
@@ -13,14 +14,23 @@ type Repository interface {
 	Invalidate(ctx context.Context, keyId int) error
 }
 
-type Service struct {
-	l *zap.Logger
-	r Repository
+type AccountMediator interface {
+	// RoleByAccountId по Id аккаунта находит его роль
+	RoleByAccountId(ctx context.Context, id int) (permissions.RoleEntity, error)
+	// HasAccess проверяет, есть ли у указанной роли доступ к переданному действию к указанному объекту
+	HasAccess(ctx context.Context, roleId int, objectName, actionName string) (bool, error)
 }
 
-func NewKeyService(repository Repository, logger *zap.Logger) Service {
+type Service struct {
+	l               *zap.Logger
+	r               Repository
+	accountMediator AccountMediator
+}
+
+func NewKeyService(repository Repository, logger *zap.Logger, accountMediator AccountMediator) Service {
 	return Service{
-		l: logger,
-		r: repository,
+		l:               logger,
+		r:               repository,
+		accountMediator: accountMediator,
 	}
 }
