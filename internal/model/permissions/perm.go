@@ -10,3 +10,11 @@ type AddPermReq struct {
 type AddPermResp struct {
 	Success string `json:"success"`
 }
+
+type PermissionEntity struct {
+	PermissionId int `db:"role_perm_id"`
+
+	RoleEntity
+	ActionEntity
+	ObjectEntity
+}
