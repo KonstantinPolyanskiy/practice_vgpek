@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"go.uber.org/zap"
+	"practice_vgpek/internal/mediator/account"
 	"practice_vgpek/internal/model/permissions"
 	"practice_vgpek/internal/model/person"
 	"practice_vgpek/internal/model/registration_key"
@@ -15,6 +16,8 @@ import (
 type AuthnService interface {
 	NewPerson(ctx context.Context, registering person.RegistrationReq) (person.RegisteredResp, error)
 	NewToken(ctx context.Context, logIn person.LogInReq) (person.LogInResp, error)
+	// ParseToken в случае, если токен распарсен - возвращает id аккаунта
+	ParseToken(token string) (int, error)
 }
 
 type RBACService interface {
@@ -35,9 +38,11 @@ type Service struct {
 }
 
 func New(repository repository.Repository, logger *zap.Logger) Service {
+	am := account.NewAccountMediator(repository.AccountRepo, repository.KeyRepo, repository.RoleRepo, repository.PermissionRepo)
+
 	return Service{
 		AuthnService: authn.NewAuthenticationService(repository.PersonRepo, repository.AccountRepo, repository.KeyRepo, logger),
-		KeyService:   reg_key.NewKeyService(repository.KeyRepo, logger),
+		KeyService:   reg_key.NewKeyService(repository.KeyRepo, logger, am),
 		RBACService:  rbac.NewRBACService(repository.ActionRepo, repository.ObjectRepo, repository.RoleRepo, repository.PermissionRepo, logger),
 	}
 }
