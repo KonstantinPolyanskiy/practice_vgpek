@@ -16,6 +16,7 @@ import (
 type Service interface {
 	NewPerson(ctx context.Context, registering person.RegistrationReq) (person.RegisteredResp, error)
 	NewToken(ctx context.Context, logIn person.LogInReq) (person.LogInResp, error)
+	ParseToken(token string) (int, error)
 }
 
 type Handler struct {

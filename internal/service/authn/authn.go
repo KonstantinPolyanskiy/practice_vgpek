@@ -51,6 +51,11 @@ func NewAuthenticationService(
 	}
 }
 
+type authClaims struct {
+	jwt.RegisteredClaims
+	AccountId int `json:"acc_id,omitempty"`
+}
+
 type RegistrationResult struct {
 	RegisteredPerson person.RegisteredResp
 	Error            error
@@ -228,9 +233,12 @@ func (s Service) NewToken(ctx context.Context, logIn person.LogInReq) (person.Lo
 			return
 		}
 
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, &jwt.MapClaims{
-			"exp":        time.Now().Add(time.Hour).Unix(),
-			"account_id": acc.AccountId,
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, &authClaims{
+			RegisteredClaims: jwt.RegisteredClaims{
+				ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+				IssuedAt:  jwt.NewNumericDate(time.Now()),
+			},
+			AccountId: acc.AccountId,
 		})
 
 		signedToken, err := token.SignedString([]byte(testKey))
@@ -257,6 +265,26 @@ func (s Service) NewToken(ctx context.Context, logIn person.LogInReq) (person.Lo
 			return result.CreatedToken, result.Error
 		}
 	}
+}
+
+func (s Service) ParseToken(token string) (int, error) {
+	t, err := jwt.ParseWithClaims(token, &authClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New("invalid signing method")
+		}
+
+		return []byte(testKey), nil
+	})
+	if err != nil {
+		return 0, errors.New("ошибка расшифровки токена")
+	}
+
+	c, ok := t.Claims.(*authClaims)
+	if !ok {
+		return 0, errors.New("ошибка полей токена")
+	}
+
+	return c.AccountId, err
 }
 
 func sendRegistrationResult(resCh chan RegistrationResult, resp person.RegisteredResp, errMsg string) {
