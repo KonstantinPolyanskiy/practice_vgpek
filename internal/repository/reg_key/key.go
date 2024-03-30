@@ -129,6 +129,34 @@ func (r Repository) RegKeyByBody(ctx context.Context, body string) (registration
 	return regKey, nil
 }
 
+func (r Repository) RegKeyById(ctx context.Context, id int) (registration_key.Entity, error) {
+	l := r.l.With(
+		zap.String("action", "get key by id"),
+		zap.String("layer", "repo"),
+	)
+
+	findRoleQuery := `SELECT * FROM registration_key WHERE reg_key_id = $1`
+
+	row, err := r.db.Query(ctx, findRoleQuery, id)
+	if err != nil {
+		l.Warn("error get key by id",
+			zap.Int("key id", id),
+			zap.Error(err),
+		)
+
+		return registration_key.Entity{}, err
+	}
+
+	key, err := pgx.CollectOneRow(row, pgx.RowToStructByName[registration_key.Entity])
+	if err != nil {
+		l.Warn("error collect key in struct", zap.Error(err))
+
+		return registration_key.Entity{}, err
+	}
+
+	return key, nil
+}
+
 func (r Repository) IncCountUsages(ctx context.Context, keyId int) error {
 	l := r.l.With(
 		zap.String("action", "increment key count"),
