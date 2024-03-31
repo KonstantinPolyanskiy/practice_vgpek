@@ -13,6 +13,7 @@ import (
 type AuthnHandler interface {
 	Registration(w http.ResponseWriter, r *http.Request)
 	Login(w http.ResponseWriter, r *http.Request)
+	Identity(next http.Handler) http.Handler
 }
 
 type KeyHandler interface {
@@ -54,6 +55,7 @@ func (h Handler) Init() *chi.Mux {
 	})
 
 	r.Route("/key", func(r chi.Router) {
+		r.Use(h.AuthnHandler.Identity)
 		r.Post("/", h.KeyHandler.AddKey)
 	})
 
