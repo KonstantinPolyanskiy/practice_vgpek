@@ -29,6 +29,7 @@ type RBACService interface {
 
 type KeyService interface {
 	NewKey(ctx context.Context, req registration_key.AddReq) (registration_key.AddResp, error)
+	InvalidateKey(ctx context.Context, deletingKey registration_key.DeleteReq) (registration_key.DeleteResp, error)
 }
 
 type Service struct {

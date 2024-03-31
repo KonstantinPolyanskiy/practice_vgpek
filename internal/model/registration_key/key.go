@@ -15,6 +15,14 @@ type AddResp struct {
 	CreatedAt          time.Time `json:"created_at"`
 }
 
+type DeleteReq struct {
+	KeyId int `json:"key_id"`
+}
+
+type DeleteResp struct {
+	KeyId int `json:"key_id"`
+}
+
 type DTO struct {
 	RoleId         int
 	Body           string

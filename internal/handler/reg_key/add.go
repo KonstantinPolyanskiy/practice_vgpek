@@ -5,29 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/go-chi/render"
-	"go.uber.org/zap"
 	"net/http"
 	"practice_vgpek/internal/model/registration_key"
 	"practice_vgpek/internal/service/reg_key"
 	"practice_vgpek/pkg/apperr"
 	"time"
 )
-
-type Service interface {
-	NewKey(ctx context.Context, req registration_key.AddReq) (registration_key.AddResp, error)
-}
-
-type Handler struct {
-	l *zap.Logger
-	s Service
-}
-
-func NewRegKeyHandler(service Service, logger *zap.Logger) Handler {
-	return Handler{
-		l: logger,
-		s: service,
-	}
-}
 
 // AddKey REST хэндлер для создания ключа регистрации
 func (h Handler) AddKey(w http.ResponseWriter, r *http.Request) {
@@ -68,4 +51,5 @@ func (h Handler) AddKey(w http.ResponseWriter, r *http.Request) {
 	}
 
 	render.JSON(w, r, createdKey)
+	return
 }

@@ -2,9 +2,21 @@ package reg_key
 
 import (
 	"context"
+	"errors"
 	"go.uber.org/zap"
 	"practice_vgpek/internal/model/permissions"
 	"practice_vgpek/internal/model/registration_key"
+)
+
+const ObjectName = "KEY"
+
+var (
+	NewKeyOperation        = "создание нового ключа"
+	InvalidateKeyOperation = "удаление ключа"
+)
+
+var (
+	ErrDontHavePermission = errors.New("нет доступа")
 )
 
 type Repository interface {

@@ -9,8 +9,7 @@ import (
 )
 
 const (
-	ObjectName = "KEY"
-	ActionName = "ADD"
+	AddActionName = "ADD"
 )
 
 type CreatingKeyResult struct {
@@ -22,14 +21,14 @@ func (s Service) NewKey(ctx context.Context, req registration_key.AddReq) (regis
 	resCh := make(chan CreatingKeyResult)
 
 	l := s.l.With(
-		zap.String("action", NewKeyAction),
+		zap.String("action", NewKeyOperation),
 		zap.String("layer", "services"),
 	)
 
 	go func() {
 		// Проверяем что указанное количество использований ключа больше 0
-		if req.MaxCountUsages < 0 {
-			l.Warn("incorrect max count usages", zap.Int("body key", req.MaxCountUsages))
+		if req.MaxCountUsages <= 0 {
+			l.Warn("incorrect max count usages", zap.Int("max count usages", req.MaxCountUsages))
 
 			sendNewKeyResult(resCh, registration_key.AddResp{}, "неправильное кол-во использований ключа")
 			return
@@ -46,9 +45,10 @@ func (s Service) NewKey(ctx context.Context, req registration_key.AddReq) (regis
 		}
 
 		// Проверяем, есть ли доступ
-		hasAccess, err := s.accountMediator.HasAccess(ctx, role.Id, ObjectName, ActionName)
+		hasAccess, err := s.accountMediator.HasAccess(ctx, role.Id, ObjectName, AddActionName)
 		if err != nil || !hasAccess {
-			s.l.Warn("возникла ошибка при проверке прав", zap.Error(err))
+			l.Warn("возникла ошибка при проверке прав", zap.Error(err))
+
 			sendNewKeyResult(resCh, registration_key.AddResp{}, ErrDontHavePermission.Error())
 			return
 		}

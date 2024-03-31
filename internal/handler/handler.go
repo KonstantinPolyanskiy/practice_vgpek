@@ -18,6 +18,7 @@ type AuthnHandler interface {
 
 type KeyHandler interface {
 	AddKey(w http.ResponseWriter, r *http.Request)
+	DeleteKey(w http.ResponseWriter, r *http.Request)
 }
 
 type RBACHandler interface {
@@ -57,6 +58,7 @@ func (h Handler) Init() *chi.Mux {
 	r.Route("/key", func(r chi.Router) {
 		r.Use(h.AuthnHandler.Identity)
 		r.Post("/", h.KeyHandler.AddKey)
+		r.Delete("/", h.KeyHandler.DeleteKey)
 	})
 
 	r.Route("/action", func(r chi.Router) {
