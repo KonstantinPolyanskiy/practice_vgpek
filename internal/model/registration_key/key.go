@@ -15,6 +15,10 @@ type AddResp struct {
 	CreatedAt          time.Time `json:"created_at"`
 }
 
+type GetKeysResp struct {
+	Keys []Entity `json:"key"`
+}
+
 type DeleteReq struct {
 	KeyId int `json:"key_id"`
 }

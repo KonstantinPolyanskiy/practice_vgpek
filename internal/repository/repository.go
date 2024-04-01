@@ -5,6 +5,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 	"practice_vgpek/internal/model/account"
+	"practice_vgpek/internal/model/params"
 	"practice_vgpek/internal/model/permissions"
 	"practice_vgpek/internal/model/person"
 	"practice_vgpek/internal/model/registration_key"
@@ -46,6 +47,7 @@ type RoleRepo interface {
 type KeyRepo interface {
 	SaveKey(ctx context.Context, key registration_key.DTO) (registration_key.Entity, error)
 	RegKeyByBody(ctx context.Context, body string) (registration_key.Entity, error)
+	KeysByParams(ctx context.Context, params params.Key) ([]registration_key.Entity, error)
 	RegKeyById(ctx context.Context, id int) (registration_key.Entity, error)
 	IncCountUsages(ctx context.Context, keyId int) error
 	Invalidate(ctx context.Context, keyId int) error

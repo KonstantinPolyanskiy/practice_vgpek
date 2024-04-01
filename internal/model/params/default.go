@@ -1,7 +1,11 @@
 package params
 
 type Default struct {
-	NotDeleted bool `json:"not_deleted"`
-	Limit      int  `json:"limit"`
-	Offset     int  `json:"offset"`
+	Limit  int `json:"limit"`
+	Offset int `json:"offset"`
+}
+
+type Key struct {
+	IsValid bool `json:"is_valid"`
+	Default
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"go.uber.org/zap"
 	"practice_vgpek/internal/mediator/account"
+	"practice_vgpek/internal/model/params"
 	"practice_vgpek/internal/model/permissions"
 	"practice_vgpek/internal/model/person"
 	"practice_vgpek/internal/model/registration_key"
@@ -30,6 +31,7 @@ type RBACService interface {
 type KeyService interface {
 	NewKey(ctx context.Context, req registration_key.AddReq) (registration_key.AddResp, error)
 	InvalidateKey(ctx context.Context, deletingKey registration_key.DeleteReq) (registration_key.DeleteResp, error)
+	Keys(ctx context.Context, keyParams params.Key) (registration_key.GetKeysResp, error)
 }
 
 type Service struct {
