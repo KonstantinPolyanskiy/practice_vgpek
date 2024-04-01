@@ -16,7 +16,7 @@ type AddResp struct {
 }
 
 type GetKeysResp struct {
-	Keys []Entity `json:"key"`
+	Keys []Entity `json:"keys"`
 }
 
 type DeleteReq struct {
