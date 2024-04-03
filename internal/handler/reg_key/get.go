@@ -35,7 +35,7 @@ func (h Handler) GetKeys(w http.ResponseWriter, r *http.Request) {
 	}
 
 	render.JSON(w, r, keys)
-
+	return
 }
 
 func getKeyParams(r *http.Request, defaultParams params.Default) params.Key {
