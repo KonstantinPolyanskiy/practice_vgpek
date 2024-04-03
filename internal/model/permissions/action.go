@@ -9,6 +9,10 @@ type GetActionResp struct {
 	Name string `json:"action_name"`
 }
 
+type GetActionsResp struct {
+	Actions []GetActionResp `json:"actions"`
+}
+
 type ActionEntity struct {
 	Id   int    `db:"internal_action_id"`
 	Name string `db:"internal_action_name"`
