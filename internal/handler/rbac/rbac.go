@@ -3,11 +3,16 @@ package rbac
 import (
 	"context"
 	"go.uber.org/zap"
+	"practice_vgpek/internal/model/params"
 	"practice_vgpek/internal/model/permissions"
 )
 
 type RBACService interface {
 	NewAction(ctx context.Context, addingAction permissions.AddActionReq) (permissions.AddActionResp, error)
+
+	ActionById(ctx context.Context, req permissions.GetActionReq) (permissions.ActionEntity, error)
+	ActionsByParams(ctx context.Context, params params.Default) ([]permissions.ActionEntity, error)
+
 	NewObject(ctx context.Context, addingObject permissions.AddObjectReq) (permissions.AddObjectResp, error)
 	NewRole(ctx context.Context, addingRole permissions.AddRoleReq) (permissions.AddRoleResp, error)
 	NewPermission(ctx context.Context, addingPermission permissions.AddPermReq) (permissions.AddPermResp, error)
