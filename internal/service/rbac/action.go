@@ -14,10 +14,6 @@ const (
 	GetActionsOperation = "получение прав действий по параметрам"
 )
 
-const (
-	GetActionName = "GET"
-)
-
 type ActionRepository interface {
 	SaveAction(ctx context.Context, savingAction permissions.ActionDTO) (permissions.ActionEntity, error)
 	ActionById(ctx context.Context, id int) (permissions.ActionEntity, error)
@@ -122,7 +118,6 @@ func (s RBACService) ActionById(ctx context.Context, req permissions.GetActionRe
 
 		sendGetActionResult(resCh, action, "")
 		return
-
 	}()
 
 	for {
