@@ -57,10 +57,15 @@ func (m Mediator) RoleByAccountId(ctx context.Context, id int) (permissions.Role
 	return role, nil
 }
 
-func (m Mediator) HasAccess(ctx context.Context, roleId int, objectName, actionName string) (bool, error) {
+func (m Mediator) HasAccess(ctx context.Context, accountId int, objectName, actionName string) (bool, error) {
 	var hasObject, hasAction bool
 
-	perms, err := m.PermRepo.PermissionsByRoleId(ctx, roleId)
+	role, err := m.RoleByAccountId(ctx, accountId)
+	if err != nil {
+		return false, err
+	}
+
+	perms, err := m.PermRepo.PermissionsByRoleId(ctx, role.Id)
 	if err != nil {
 		return false, err
 	}
