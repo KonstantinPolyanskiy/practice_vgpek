@@ -1,5 +1,14 @@
 package permissions
 
+type GetRoleResp struct {
+	Id   int    `json:"role_id"`
+	Name string `json:"role_name"`
+}
+
+type GetRolesResp struct {
+	Roles []GetRoleResp `json:"roles"`
+}
+
 type AddRoleReq struct {
 	Name string `json:"name"`
 }

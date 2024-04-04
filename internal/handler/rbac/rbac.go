@@ -16,6 +16,9 @@ type RBACService interface {
 	ObjectById(ctx context.Context, id int) (permissions.ObjectEntity, error)
 	ObjectsByParams(ctx context.Context, params params.Default) ([]permissions.ObjectEntity, error)
 
+	RoleById(ctx context.Context, id int) (permissions.RoleEntity, error)
+	RolesByParams(ctx context.Context, params params.Default) ([]permissions.RoleEntity, error)
+
 	NewObject(ctx context.Context, addingObject permissions.AddObjectReq) (permissions.AddObjectResp, error)
 	NewRole(ctx context.Context, addingRole permissions.AddRoleReq) (permissions.AddRoleResp, error)
 	NewPermission(ctx context.Context, addingPermission permissions.AddPermReq) (permissions.AddPermResp, error)

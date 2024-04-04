@@ -26,6 +26,7 @@ type PermissionRepo interface {
 
 type ActionRepo interface {
 	SaveAction(ctx context.Context, savingAction permissions.ActionDTO) (permissions.ActionEntity, error)
+
 	ActionByName(ctx context.Context, name string) (permissions.ActionEntity, error)
 	ActionById(ctx context.Context, id int) (permissions.ActionEntity, error)
 	ActionsByParams(ctx context.Context, params params.Default) ([]permissions.ActionEntity, error)
@@ -33,6 +34,7 @@ type ActionRepo interface {
 
 type AccountRepo interface {
 	SaveAccount(ctx context.Context, savingAcc account.DTO) (account.Entity, error)
+
 	AccountByLogin(ctx context.Context, login string) (account.Entity, error)
 	AccountById(ctx context.Context, id int) (account.Entity, error)
 }
@@ -46,8 +48,10 @@ type ObjectRepo interface {
 
 type RoleRepo interface {
 	SaveRole(ctx context.Context, savingRole permissions.RoleDTO) (permissions.RoleEntity, error)
+
 	RoleByName(ctx context.Context, name string) (permissions.RoleEntity, error)
 	RoleById(ctx context.Context, id int) (permissions.RoleEntity, error)
+	RolesByParams(ctx context.Context, params params.Default) ([]permissions.RoleEntity, error)
 }
 
 type KeyRepo interface {

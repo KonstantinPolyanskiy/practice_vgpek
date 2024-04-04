@@ -3,9 +3,11 @@ package rbac
 import (
 	"context"
 	"errors"
+	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
+	"practice_vgpek/internal/model/params"
 	"practice_vgpek/internal/model/permissions"
 )
 
@@ -26,8 +28,8 @@ func NewRoleRepo(db *pgxpool.Pool, logger *zap.Logger) RoleRepository {
 	}
 }
 
-func (r RoleRepository) SaveRole(ctx context.Context, savingRole permissions.RoleDTO) (permissions.RoleEntity, error) {
-	l := r.l.With(
+func (rr RoleRepository) SaveRole(ctx context.Context, savingRole permissions.RoleDTO) (permissions.RoleEntity, error) {
+	l := rr.l.With(
 		zap.String("executing query name", "save entity"),
 		zap.String("layer", "repo"),
 	)
@@ -49,7 +51,7 @@ func (r RoleRepository) SaveRole(ctx context.Context, savingRole permissions.Rol
 	l.Debug("args in insert role query", zap.Any("name role", args["RoleName"]))
 
 	// Вставляем объект в БД
-	err := r.db.QueryRow(ctx, insertedRoleQuery, args).Scan(&insertedRoleId)
+	err := rr.db.QueryRow(ctx, insertedRoleQuery, args).Scan(&insertedRoleId)
 	if err != nil {
 		l.Warn("error insert role", zap.Error(err))
 
@@ -65,7 +67,7 @@ func (r RoleRepository) SaveRole(ctx context.Context, savingRole permissions.Rol
 
 	l.Debug("get inserted role", zap.String("query", getRoleQuery))
 
-	row, err := r.db.Query(ctx, getRoleQuery, insertedRoleId)
+	row, err := rr.db.Query(ctx, getRoleQuery, insertedRoleId)
 	if err != nil {
 		l.Warn("error get inserted role", zap.Error(err))
 
@@ -85,8 +87,8 @@ func (r RoleRepository) SaveRole(ctx context.Context, savingRole permissions.Rol
 	return savedRole, nil
 }
 
-func (r RoleRepository) RoleByName(ctx context.Context, name string) (permissions.RoleEntity, error) {
-	l := r.l.With(
+func (rr RoleRepository) RoleByName(ctx context.Context, name string) (permissions.RoleEntity, error) {
+	l := rr.l.With(
 		zap.String("executing query name", "get role by name"),
 		zap.String("layer", "repo"),
 	)
@@ -95,7 +97,7 @@ func (r RoleRepository) RoleByName(ctx context.Context, name string) (permission
 
 	getRoleQuery := `SELECT * FROM internal_role WHERE role_name=$1`
 
-	err := r.db.QueryRow(ctx, getRoleQuery, name).Scan(&role)
+	err := rr.db.QueryRow(ctx, getRoleQuery, name).Scan(&role)
 	if err != nil {
 		l.Warn("error get role by name",
 			zap.String("role name", name),
@@ -116,15 +118,15 @@ func (r RoleRepository) RoleByName(ctx context.Context, name string) (permission
 	return role, nil
 }
 
-func (r RoleRepository) RoleById(ctx context.Context, id int) (permissions.RoleEntity, error) {
-	l := r.l.With(
+func (rr RoleRepository) RoleById(ctx context.Context, id int) (permissions.RoleEntity, error) {
+	l := rr.l.With(
 		zap.String("executing query name", "get role by id"),
 		zap.String("layer", "repo"),
 	)
 
 	getRoleQuery := `SELECT * FROM internal_role WHERE internal_role_id = $1`
 
-	row, err := r.db.Query(ctx, getRoleQuery, id)
+	row, err := rr.db.Query(ctx, getRoleQuery, id)
 	if err != nil {
 		l.Warn("error get role by id",
 			zap.Int("Role id", id),
@@ -144,4 +146,39 @@ func (r RoleRepository) RoleById(ctx context.Context, id int) (permissions.RoleE
 	}
 
 	return role, nil
+}
+
+func (rr RoleRepository) RolesByParams(ctx context.Context, params params.Default) ([]permissions.RoleEntity, error) {
+	l := rr.l.With(
+		zap.String("operation", "get roles by params"),
+		zap.String("layer", "repo"),
+	)
+
+	getRolesQuery := squirrel.Select("*").From("internal_role").
+		Limit(uint64(params.Limit)).
+		Offset(uint64(params.Offset)).
+		PlaceholderFormat(squirrel.Dollar)
+
+	q, args, err := getRolesQuery.ToSql()
+	if err != nil {
+		l.Warn("error build sql", zap.Error(err))
+
+		return nil, err
+	}
+
+	row, err := rr.db.Query(ctx, q, args...)
+	if err != nil {
+		l.Warn("error get roles by params", zap.Error(err))
+
+		return nil, err
+	}
+
+	roles, err := pgx.CollectRows(row, pgx.RowToStructByName[permissions.RoleEntity])
+	if err != nil {
+		l.Warn("error collect roles to struct", zap.Error(err))
+
+		return nil, err
+	}
+
+	return roles, nil
 }

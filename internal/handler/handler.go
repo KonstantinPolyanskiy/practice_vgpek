@@ -24,8 +24,11 @@ type KeyHandler interface {
 
 type RBACHandler interface {
 	AddAction(w http.ResponseWriter, r *http.Request)
+
 	AddObject(w http.ResponseWriter, r *http.Request)
+
 	AddRole(w http.ResponseWriter, r *http.Request)
+
 	AddPermission(w http.ResponseWriter, r *http.Request)
 
 	GetActions(w http.ResponseWriter, r *http.Request)
@@ -33,6 +36,9 @@ type RBACHandler interface {
 
 	GetObject(w http.ResponseWriter, r *http.Request)
 	GetObjects(w http.ResponseWriter, r *http.Request)
+
+	GetRole(w http.ResponseWriter, r *http.Request)
+	GetRoles(w http.ResponseWriter, r *http.Request)
 }
 
 type Handler struct {
@@ -90,7 +96,12 @@ func (h Handler) Init() *chi.Mux {
 	})
 
 	r.Route("/role", func(r chi.Router) {
+		r.Use(h.AuthnHandler.Identity)
+
 		r.Post("/", h.RBACHandler.AddRole)
+
+		r.Get("/", h.RBACHandler.GetRole)
+		r.Get("/params", h.RBACHandler.GetRoles)
 	})
 
 	r.Route("/permissions", func(r chi.Router) {
