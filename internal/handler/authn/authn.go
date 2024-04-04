@@ -38,14 +38,21 @@ func (h Handler) Registration(w http.ResponseWriter, r *http.Request) {
 	var registering person.RegistrationReq
 
 	l := h.l.With(
-		zap.String("endpoint", r.RequestURI),
-		zap.String("action", authn.RegistrationOperation),
-		zap.String("layer", "handlers"),
+		zap.String("адрес", r.RequestURI),
+		zap.String("операция", authn.RegistrationOperation),
+		zap.String("слой", "http обработчики"),
 	)
 
 	err := json.NewDecoder(r.Body).Decode(&registering)
 	if err != nil {
-		l.Warn("error parse new person request", zap.Error(err))
+		l.Warn("ошибка декодирования данных", zap.Error(err),
+			zap.String("имя", registering.Personality.FirstName),
+			zap.String("фамилия", registering.Personality.LastName),
+			zap.String("отчество", registering.Personality.MiddleName),
+			zap.String("ключ регистрации", registering.RegistrationKey),
+			zap.String("логин", registering.Credentials.Login),
+			zap.String("пароль", registering.Credentials.Password),
+		)
 
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
 			Action: authn.RegistrationOperation,
@@ -63,8 +70,6 @@ func (h Handler) Registration(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		} else {
-			l.Warn("error registering user", zap.String("Ключ регистрации", registering.RegistrationKey))
-
 			apperr.New(w, r, http.StatusInternalServerError, apperr.AppError{
 				Action: authn.RegistrationOperation,
 				Error:  err.Error(),
@@ -73,9 +78,11 @@ func (h Handler) Registration(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	l.Info("user successfully registered",
-		zap.String("first name", registered.FirstName),
-		zap.Time("registration time", registered.CreatedAt),
+	l.Info("пользователь успешно зарегистрирован",
+		zap.String("имя", registered.FirstName),
+		zap.String("фамилия", registered.LastName),
+		zap.String("отчество", registered.MiddleName),
+		zap.Time("дата регистрации", registered.CreatedAt),
 	)
 
 	render.JSON(w, r, &registered)
@@ -89,14 +96,17 @@ func (h Handler) Login(w http.ResponseWriter, r *http.Request) {
 	var logIn person.LogInReq
 
 	l := h.l.With(
-		zap.String("endpoint", r.RequestURI),
-		zap.String("action", authn.LoginOperation),
-		zap.String("layer", "handlers"),
+		zap.String("адрес", r.RequestURI),
+		zap.String("операция", authn.LoginOperation),
+		zap.String("слой", "http обработчики"),
 	)
 
 	err := json.NewDecoder(r.Body).Decode(&logIn)
 	if err != nil {
-		l.Warn("error parse login request", zap.Error(err))
+		l.Warn("ошибка декодирования данных", zap.Error(err),
+			zap.String("логин", logIn.Login),
+			zap.String("пароль", logIn.Password),
+		)
 
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
 			Action: authn.LoginOperation,
@@ -114,8 +124,6 @@ func (h Handler) Login(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		} else {
-			l.Warn("error login user", zap.String("login", logIn.Login))
-
 			apperr.New(w, r, http.StatusInternalServerError, apperr.AppError{
 				Action: authn.LoginOperation,
 				Error:  err.Error(),
@@ -124,5 +132,8 @@ func (h Handler) Login(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	l.Info("пользователь успешно вошел", zap.Int("id аккаунта", (r.Context().Value("AdminId")).(int)))
+
 	render.JSON(w, r, token)
+	return
 }

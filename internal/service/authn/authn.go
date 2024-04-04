@@ -70,35 +70,38 @@ func (s Service) NewPerson(ctx context.Context, registering person.RegistrationR
 	resCh := make(chan RegistrationResult)
 
 	l := s.l.With(
-		zap.String("action", RegistrationOperation),
-		zap.String("layer", "services"),
+		zap.String("операция", RegistrationOperation),
+		zap.String("слой", "сервисы"),
 	)
 
 	go func() {
 		// Получаем ключ, по которому зарегистрированн пользователь
 		regKey, err := s.kr.RegKeyByBody(ctx, registering.RegistrationKey)
 		if err != nil {
-			l.Warn("body key error", zap.String("body key", registering.RegistrationKey))
-			sendRegistrationResult(resCh, person.RegisteredResp{}, "ошибка с ключем регистрации")
+			l.Warn("ошибка получения ключа регистрации", zap.String("тело ключа при регистрации", registering.RegistrationKey))
+
+			// TODO: написать проверку, найден ли ключ или другая ошибка
+			sendRegistrationResult(resCh, person.RegisteredResp{}, "Ошибка с ключем регистрации / ключ регистрации не найден")
 			return
 		}
 
 		// Проверка, что ключ валиден, если нет - возвращаем ошибку
 		if !regKey.IsValid {
-			sendRegistrationResult(resCh, person.RegisteredResp{}, "невалидный ключ")
+			l.Warn("попытка регистрации по неактивному ключу", zap.String("тело ключа регистрации", regKey.Body))
+			sendRegistrationResult(resCh, person.RegisteredResp{}, "Ключ регистрации неактивен")
 			return
 		}
 
 		// Проверяем, что ключ еще можно использовать, если нет - инвалидируем
 		if regKey.CurrentCountUsages >= regKey.MaxCountUsages {
 			if err = s.kr.Invalidate(ctx, regKey.RegKeyId); err != nil {
-				l.Warn("invalidate key error",
-					zap.String("body", regKey.Body),
-					zap.Int("key id", regKey.RegKeyId),
-					zap.Bool("is valid", regKey.IsValid),
+				l.Warn("ошибка деактивации ключа",
+					zap.String("тело ключа", regKey.Body),
+					zap.Int("id ключа", regKey.RegKeyId),
+					zap.Bool("валиден", regKey.IsValid),
 				)
 
-				sendRegistrationResult(resCh, person.RegisteredResp{}, "ошибка деактивирования ключа")
+				sendRegistrationResult(resCh, person.RegisteredResp{}, "Ошибка с ключем регистрации")
 				return
 			}
 		}
@@ -106,12 +109,12 @@ func (s Service) NewPerson(ctx context.Context, registering person.RegistrationR
 		// Хешируем пароль
 		passwordHash, err := password.Hash(registering.Password)
 		if err != nil {
-			l.Warn("hashing password error",
-				zap.String("password", registering.Password),
+			l.Warn("ошибка хеширования пароля",
+				zap.String("пароль", registering.Password),
 				zap.Error(err),
 			)
 
-			sendRegistrationResult(resCh, person.RegisteredResp{}, "ошибка хеширования пароля")
+			sendRegistrationResult(resCh, person.RegisteredResp{}, "Ошибка с введенным паролем")
 			return
 		}
 
@@ -133,15 +136,15 @@ func (s Service) NewPerson(ctx context.Context, registering person.RegistrationR
 		// Сохраняем регистрируеммый аккаунт пользователя в БД
 		savedAcc, err := s.ar.SaveAccount(ctx, dto.Account)
 		if err != nil {
-			var errMsg string
+			errMsg := "Ошибка создания аккаунта"
 
-			l.Warn("error save account in db", zap.String("user login", dto.Account.Login))
+			l.Warn("ошибка сохранения аккаунта",
+				zap.String("логин", dto.Account.Login),
+				zap.Int("id ключа регистрации", dto.Account.RegKeyId),
+			)
 
-			// Проверяем, является ли полученная ошибка - ошибкой сохранения аккаунта
 			if errors.Is(err, accountRepo.ErrLoginAlreadyExist) {
-				errMsg = "такой логин уже существует"
-			} else {
-				errMsg = "неизвестная ошибка сохранения аккаунта"
+				errMsg = "Введенный логин уже занят"
 			}
 
 			sendRegistrationResult(resCh, person.RegisteredResp{}, errMsg)
@@ -151,23 +154,26 @@ func (s Service) NewPerson(ctx context.Context, registering person.RegistrationR
 		// Если аккаунт создан, увеличиваем кол-во регистраций по ключу
 		err = s.kr.IncCountUsages(ctx, regKey.RegKeyId)
 		if err != nil {
-			l.Warn("error inc count key",
-				zap.Int("key id", regKey.RegKeyId),
-				zap.Int("current count", regKey.CurrentCountUsages),
+			l.Warn("ошибка увеличения текущего кол-ва регистраций по ключу",
+				zap.Int("id ключа", regKey.RegKeyId),
+				zap.Bool("валиден", regKey.IsValid),
 			)
 
-			sendRegistrationResult(resCh, person.RegisteredResp{}, "ошибка обновления ключа")
+			sendRegistrationResult(resCh, person.RegisteredResp{}, "Ошибка при работе с ключем регистрации")
 			return
 		}
 
 		// Сохраняем регистируемого пользователя в БД
 		savedPerson, err := s.pr.SavePerson(ctx, dto, savedAcc.AccountId)
 		if err != nil {
-			l.Warn("error save person in db",
-				zap.String("full name", dto.FirstName+" "+dto.MiddleName+" "+dto.LastName),
-				zap.Int("account id", savedAcc.AccountId),
+			l.Warn("ошибка сохранения пользователя",
+				zap.String("имя", dto.FirstName),
+				zap.String("фамилия", dto.LastName),
+				zap.String("отчество", dto.MiddleName),
+				zap.Int("id аккаунта", savedAcc.AccountId),
 			)
-			sendRegistrationResult(resCh, person.RegisteredResp{}, "ошибка сохранения пользователя")
+
+			sendRegistrationResult(resCh, person.RegisteredResp{}, "Ошибка создания пользователя")
 			return
 		}
 
@@ -200,22 +206,19 @@ func (s Service) NewToken(ctx context.Context, logIn person.LogInReq) (person.Lo
 	resCh := make(chan LogInResult)
 
 	l := s.l.With(
-		zap.String("action", LoginOperation),
-		zap.String("layer", "services"),
+		zap.String("операция", LoginOperation),
+		zap.String("слой", "сервисы"),
 	)
 
 	go func() {
 		acc, err := s.ar.AccountByLogin(ctx, logIn.Login)
 		if err != nil {
-			var errMsg string
+			errMsg := "Ошибка получения аккаунта"
 
-			l.Warn("error get account from db", zap.String("user login", logIn.Login))
+			l.Warn("ошибка получения аккаунта", zap.String("логин аккаунта", logIn.Login))
 
-			// Проверяем, является ли полученная ошибка - ошибка получения аккаунта
 			if errors.Is(err, accountRepo.ErrAccountNotFound) {
-				errMsg = "аккаунт не найден"
-			} else {
-				errMsg = "неизвестная ошибка получения аккаунта"
+				errMsg = "Аккаунт не найден"
 			}
 
 			sendCreatedTokenResult(resCh, person.LogInResp{}, errMsg)
@@ -224,12 +227,12 @@ func (s Service) NewToken(ctx context.Context, logIn person.LogInReq) (person.Lo
 
 		// Если не совпадает - пароль не верен
 		if !password.CheckHash(logIn.Password, acc.PasswordHash) {
-			l.Debug("user enter incorrect data",
-				zap.String("login", logIn.Login),
-				zap.String("password", logIn.Password),
+			l.Warn("вход по некорректным данным",
+				zap.String("логин", logIn.Login),
+				zap.String("пароль", logIn.Password),
 			)
 
-			sendCreatedTokenResult(resCh, person.LogInResp{}, "неправильный логин/пароль")
+			sendCreatedTokenResult(resCh, person.LogInResp{}, "Неправильный логин или пароль")
 			return
 		}
 
@@ -243,9 +246,9 @@ func (s Service) NewToken(ctx context.Context, logIn person.LogInReq) (person.Lo
 
 		signedToken, err := token.SignedString([]byte(testKey))
 		if err != nil {
-			l.Warn("signing token error", zap.Error(err))
+			l.Warn("ошибка подписи токена", zap.Error(err))
 
-			sendCreatedTokenResult(resCh, person.LogInResp{}, "ошибка подписи ключа")
+			sendCreatedTokenResult(resCh, person.LogInResp{}, "Ошибка создания токена авторизации")
 			return
 		}
 
@@ -268,20 +271,32 @@ func (s Service) NewToken(ctx context.Context, logIn person.LogInReq) (person.Lo
 }
 
 func (s Service) ParseToken(token string) (int, error) {
+	l := s.l.With(
+		zap.String("операция", "расшифровка токена"),
+		zap.String("слой", "сервисы"),
+	)
+
 	t, err := jwt.ParseWithClaims(token, &authClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("invalid signing method")
+			l.Warn("неправильная подпись токена",
+				zap.String("токен", token.Raw),
+				zap.String("ожидаем", jwt.SigningMethodHS256.Name),
+				zap.String("текущий", token.Method.Alg()),
+			)
+			return nil, errors.New("Неправильный метод подписи")
 		}
 
 		return []byte(testKey), nil
 	})
 	if err != nil {
-		return 0, errors.New("ошибка расшифровки токена")
+		l.Warn("ошибка расшифровки токена", zap.Error(err))
+
+		return 0, errors.New("Ошибка расшифровки токена")
 	}
 
 	c, ok := t.Claims.(*authClaims)
 	if !ok {
-		return 0, errors.New("ошибка полей токена")
+		return 0, errors.New("Ошибка получения полей токена")
 	}
 
 	return c.AccountId, err
