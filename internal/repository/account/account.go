@@ -74,6 +74,7 @@ func (r Repository) SaveAccount(ctx context.Context, savingAcc account.DTO) (acc
 	l.Debug("get account", zap.String("query", getAccQuery))
 
 	row, err := r.db.Query(ctx, getAccQuery, insertedAccId)
+	defer row.Close()
 	if err != nil {
 		l.Warn("error get inserted account", zap.Error(err))
 
@@ -102,6 +103,7 @@ func (r Repository) AccountByLogin(ctx context.Context, login string) (account.E
 	getAccountQuery := `SELECT * FROM account WHERE login=$1`
 
 	row, err := r.db.Query(ctx, getAccountQuery, login)
+	defer row.Close()
 	if err != nil {
 		l.Warn("error get account by credentials",
 			zap.String("login", login),
@@ -138,6 +140,7 @@ func (r Repository) AccountById(ctx context.Context, id int) (account.Entity, er
 	getAccountQuery := `SELECT * FROM account WHERE account.account_id=$1`
 
 	row, err := r.db.Query(ctx, getAccountQuery, id)
+	defer row.Close()
 	if err != nil {
 		l.Warn("error get account by id",
 			zap.Int("Id account", id),

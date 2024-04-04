@@ -68,6 +68,7 @@ func (rr RoleRepository) SaveRole(ctx context.Context, savingRole permissions.Ro
 	l.Debug("get inserted role", zap.String("query", getRoleQuery))
 
 	row, err := rr.db.Query(ctx, getRoleQuery, insertedRoleId)
+	defer row.Close()
 	if err != nil {
 		l.Warn("error get inserted role", zap.Error(err))
 
@@ -127,6 +128,7 @@ func (rr RoleRepository) RoleById(ctx context.Context, id int) (permissions.Role
 	getRoleQuery := `SELECT * FROM internal_role WHERE internal_role_id = $1`
 
 	row, err := rr.db.Query(ctx, getRoleQuery, id)
+	defer row.Close()
 	if err != nil {
 		l.Warn("error get role by id",
 			zap.Int("Role id", id),
@@ -167,6 +169,7 @@ func (rr RoleRepository) RolesByParams(ctx context.Context, params params.Defaul
 	}
 
 	row, err := rr.db.Query(ctx, q, args...)
+	defer row.Close()
 	if err != nil {
 		l.Warn("error get roles by params", zap.Error(err))
 

@@ -67,6 +67,7 @@ func (ar ActionRepository) SaveAction(ctx context.Context, savingAction permissi
 	l.Debug("get inserted action", zap.String("query", getActionQuery))
 
 	row, err := ar.db.Query(ctx, getActionQuery, insertedActionId)
+	defer row.Close()
 	if err != nil {
 		l.Warn("error get inserted action", zap.Error(err))
 
@@ -126,6 +127,7 @@ func (ar ActionRepository) ActionById(ctx context.Context, id int) (permissions.
 	getActionQuery := `SELECT * FROM internal_action WHERE internal_action_id=$1`
 
 	row, err := ar.db.Query(ctx, getActionQuery, id)
+	defer row.Close()
 	if err != nil {
 		l.Warn("error get action", zap.Error(err))
 
@@ -165,6 +167,7 @@ func (ar ActionRepository) ActionsByParams(ctx context.Context, params params.De
 	}
 
 	row, err := ar.db.Query(ctx, q, args...)
+	defer row.Close()
 	if err != nil {
 		l.Warn("error get action by params", zap.Error(err))
 

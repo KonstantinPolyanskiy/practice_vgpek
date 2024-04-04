@@ -71,6 +71,7 @@ func (r Repository) SavePerson(ctx context.Context, savingPerson person.DTO, acc
 	l.Debug("get person", zap.String("query", getPersonQuery))
 
 	row, err := r.db.Query(ctx, getPersonQuery, insertedPersonUUID)
+	defer row.Close()
 	if err != nil {
 		l.Warn("error get inserted person", zap.Error(err))
 

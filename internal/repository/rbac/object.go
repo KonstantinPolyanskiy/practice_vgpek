@@ -68,6 +68,7 @@ func (or ObjectRepository) SaveObject(ctx context.Context, savingObject permissi
 	l.Debug("get inserted object", zap.String("query", getObjectQuery))
 
 	row, err := or.db.Query(ctx, getObjectQuery, insertedObjectId)
+	defer row.Close()
 	if err != nil {
 		l.Warn("error get inserted object", zap.Error(err))
 
@@ -96,6 +97,7 @@ func (or ObjectRepository) ObjectById(ctx context.Context, id int) (permissions.
 	getObjectQuery := `SELECT * FROM internal_object WHERE internal_object.internal_object_id=$1`
 
 	row, err := or.db.Query(ctx, getObjectQuery, id)
+	defer row.Close()
 	if err != nil {
 		l.Warn("error get object", zap.Error(err))
 
@@ -135,6 +137,7 @@ func (or ObjectRepository) ObjectsByParams(ctx context.Context, params params.De
 	}
 
 	row, err := or.db.Query(ctx, q, args...)
+	defer row.Close()
 	if err != nil {
 		l.Warn("error get objects by params", zap.Error(err))
 

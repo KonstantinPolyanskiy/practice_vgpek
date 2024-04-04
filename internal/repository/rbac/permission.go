@@ -49,7 +49,6 @@ func (r PermissionRepository) SavePermission(ctx context.Context, roleId, object
 }
 
 func (r PermissionRepository) PermissionsByRoleId(ctx context.Context, roleId int) ([]permissions.PermissionEntity, error) {
-
 	getPermissionsQuery := `
 	SELECT role_perm_id, ir.internal_role_id, ir.role_name, ia.internal_action_id, ia.internal_action_name, io.internal_object_id, io.internal_object_name
 	FROM role_permission rp
@@ -59,6 +58,7 @@ func (r PermissionRepository) PermissionsByRoleId(ctx context.Context, roleId in
 	WHERE ir.internal_role_id = $1;
 `
 	rows, err := r.db.Query(ctx, getPermissionsQuery, roleId)
+	defer rows.Close()
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, errors.New("доступы не найдены")
