@@ -69,7 +69,7 @@ func (h AccessHandler) GetObject(w http.ResponseWriter, r *http.Request) {
 
 	l := h.l.With(
 		zap.String("endpoint", r.RequestURI),
-		zap.String("operation", "получение объекта действия"),
+		zap.String("operation", rbac.GetObjectOperation),
 		zap.String("layer", "handlers"),
 	)
 
@@ -78,7 +78,7 @@ func (h AccessHandler) GetObject(w http.ResponseWriter, r *http.Request) {
 		l.Warn("error parse get object request", zap.Error(err))
 
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
-			Action: "получение объекта действия",
+			Action: rbac.GetObjectOperation,
 			Error:  "Преобразование запроса на получение действия",
 		})
 		return
@@ -88,7 +88,7 @@ func (h AccessHandler) GetObject(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
-				Action: "получение объекта действия",
+				Action: rbac.GetObjectOperation,
 				Error:  "Таймаут",
 			})
 			return
@@ -100,7 +100,7 @@ func (h AccessHandler) GetObject(w http.ResponseWriter, r *http.Request) {
 			}
 
 			apperr.New(w, r, code, apperr.AppError{
-				Action: "получение объекта действия",
+				Action: rbac.GetObjectOperation,
 				Error:  err.Error(),
 			})
 			return
@@ -121,7 +121,7 @@ func (h AccessHandler) GetObjects(w http.ResponseWriter, r *http.Request) {
 	defaultParams, err := queryutils.DefaultParams(r, 10, 0)
 	if err != nil {
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
-			Action: "получение объектов действий",
+			Action: rbac.GetObjectsOperation,
 			Error:  "Неправильные параметры запроса",
 		})
 		return
@@ -130,7 +130,7 @@ func (h AccessHandler) GetObjects(w http.ResponseWriter, r *http.Request) {
 	objects, err := h.s.ObjectsByParams(ctx, defaultParams)
 	if errors.Is(err, context.DeadlineExceeded) {
 		apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
-			Action: "получение объектов действий",
+			Action: rbac.GetObjectsOperation,
 			Error:  "Таймаут",
 		})
 		return
@@ -142,7 +142,7 @@ func (h AccessHandler) GetObjects(w http.ResponseWriter, r *http.Request) {
 		}
 
 		apperr.New(w, r, code, apperr.AppError{
-			Action: "получение объектов действий",
+			Action: rbac.GetObjectsOperation,
 			Error:  err.Error(),
 		})
 		return

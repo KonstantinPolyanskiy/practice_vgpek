@@ -23,7 +23,7 @@ func (h AccessHandler) AddAction(w http.ResponseWriter, r *http.Request) {
 
 	l := h.l.With(
 		zap.String("endpoint", r.RequestURI),
-		zap.String("action", "добавление действия"),
+		zap.String("action", rbac.AddActionOperation),
 		zap.String("layer", "handlers"),
 	)
 
@@ -33,7 +33,7 @@ func (h AccessHandler) AddAction(w http.ResponseWriter, r *http.Request) {
 
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
 			//TODO: заменить action на константу
-			Action: "добавление действия",
+			Action: rbac.AddActionOperation,
 			Error:  "Преобразование запроса на добавление действия",
 		})
 		return
@@ -43,7 +43,7 @@ func (h AccessHandler) AddAction(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
-				Action: "добавление действия",
+				Action: rbac.AddActionOperation,
 				Error:  "Таймаут",
 			})
 			return
@@ -51,7 +51,7 @@ func (h AccessHandler) AddAction(w http.ResponseWriter, r *http.Request) {
 			l.Warn("error add action", zap.String("action name", addingAction.Name))
 
 			apperr.New(w, r, http.StatusInternalServerError, apperr.AppError{
-				Action: "добавление действия",
+				Action: rbac.AddActionOperation,
 				Error:  err.Error(),
 			})
 			return
@@ -72,7 +72,7 @@ func (h AccessHandler) GetAction(w http.ResponseWriter, r *http.Request) {
 
 	l := h.l.With(
 		zap.String("endpoint", r.RequestURI),
-		zap.String("action", "получение действия"),
+		zap.String("action", rbac.GetActionOperation),
 		zap.String("layer", "handlers"),
 	)
 
@@ -81,7 +81,7 @@ func (h AccessHandler) GetAction(w http.ResponseWriter, r *http.Request) {
 		l.Warn("error parse get action request", zap.Error(err))
 
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
-			Action: "получение действия",
+			Action: rbac.GetActionOperation,
 			Error:  "Преобразование запроса на получение действия",
 		})
 		return
@@ -93,7 +93,7 @@ func (h AccessHandler) GetAction(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
-				Action: "получение действия",
+				Action: rbac.GetActionOperation,
 				Error:  "Таймаут",
 			})
 			return
@@ -105,7 +105,7 @@ func (h AccessHandler) GetAction(w http.ResponseWriter, r *http.Request) {
 			}
 
 			apperr.New(w, r, code, apperr.AppError{
-				Action: "получение действия",
+				Action: rbac.GetActionOperation,
 				Error:  err.Error(),
 			})
 			return
@@ -126,7 +126,7 @@ func (h AccessHandler) GetActions(w http.ResponseWriter, r *http.Request) {
 	defaultParams, err := queryutils.DefaultParams(r, 10, 0)
 	if err != nil {
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
-			Action: "получение действий",
+			Action: rbac.GetActionsOperation,
 			Error:  "Неправильные параметры запроса",
 		})
 		return
@@ -135,7 +135,7 @@ func (h AccessHandler) GetActions(w http.ResponseWriter, r *http.Request) {
 	actions, err := h.s.ActionsByParams(ctx, defaultParams)
 	if errors.Is(err, context.DeadlineExceeded) {
 		apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
-			Action: "получение действий",
+			Action: rbac.GetActionsOperation,
 			Error:  "неправильные параметры запроса",
 		})
 		return
@@ -147,7 +147,7 @@ func (h AccessHandler) GetActions(w http.ResponseWriter, r *http.Request) {
 		}
 
 		apperr.New(w, r, code, apperr.AppError{
-			Action: "получение действий",
+			Action: rbac.GetActionsOperation,
 			Error:  err.Error(),
 		})
 		return
