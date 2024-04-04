@@ -154,10 +154,13 @@ func (h AccessHandler) GetActions(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var resp permissions.GetActionsResp
+	resp.Actions = make([]permissions.GetActionResp, 0, len(actions))
 
-	for i, action := range actions {
-		resp.Actions[i].Id = action.Id
-		resp.Actions[i].Name = action.Name
+	for _, action := range actions {
+		resp.Actions = append(resp.Actions, permissions.GetActionResp{
+			Id:   action.Id,
+			Name: action.Name,
+		})
 	}
 
 	render.JSON(w, r, resp)
