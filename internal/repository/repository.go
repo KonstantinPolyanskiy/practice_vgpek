@@ -39,6 +39,9 @@ type AccountRepo interface {
 
 type ObjectRepo interface {
 	SaveObject(ctx context.Context, savingObject permissions.ObjectDTO) (permissions.ObjectEntity, error)
+
+	ObjectById(ctx context.Context, id int) (permissions.ObjectEntity, error)
+	ObjectsByParams(ctx context.Context, params params.Default) ([]permissions.ObjectEntity, error)
 }
 
 type RoleRepo interface {

@@ -3,9 +3,11 @@ package rbac
 import (
 	"context"
 	"errors"
+	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
+	"practice_vgpek/internal/model/params"
 	"practice_vgpek/internal/model/permissions"
 )
 
@@ -85,33 +87,66 @@ func (or ObjectRepository) SaveObject(ctx context.Context, savingObject permissi
 	return savedObject, nil
 }
 
-func (ar ActionRepository) ObjectByName(ctx context.Context, name string) (permissions.ObjectEntity, error) {
-	l := ar.l.With(
-		zap.String("executing query name", "get object by name"),
+func (or ObjectRepository) ObjectById(ctx context.Context, id int) (permissions.ObjectEntity, error) {
+	l := or.l.With(
+		zap.String("executing query name", "get object by id"),
 		zap.String("layer", "repo"),
 	)
 
-	var object permissions.ObjectEntity
+	getObjectQuery := `SELECT * FROM internal_object WHERE internal_object.internal_object_id=$1`
 
-	getActionQuery := `SELECT * FROM internal_object WHERE internal_object_name=$1`
-
-	err := ar.db.QueryRow(ctx, getActionQuery, name).Scan(&object)
+	row, err := or.db.Query(ctx, getObjectQuery, id)
 	if err != nil {
-		l.Warn("error get object by name",
-			zap.String("object name", name),
-			zap.Error(err),
-		)
-
-		if errors.Is(err, pgx.ErrTooManyRows) {
-			return permissions.ObjectEntity{}, ManyObjectErr
-		}
+		l.Warn("error get object", zap.Error(err))
 
 		if errors.Is(err, pgx.ErrNoRows) {
-			return permissions.ObjectEntity{}, ManyActionErr
+			return permissions.ObjectEntity{}, ActionNotFoundErr
 		}
 
 		return permissions.ObjectEntity{}, errors.New("unknown error")
 	}
 
+	object, err := pgx.CollectOneRow(row, pgx.RowToStructByName[permissions.ObjectEntity])
+	if err != nil {
+		l.Warn("error collect object to struct", zap.Error(err))
+
+		return permissions.ObjectEntity{}, errors.New("unknown error")
+	}
+
 	return object, nil
+}
+
+func (or ObjectRepository) ObjectsByParams(ctx context.Context, params params.Default) ([]permissions.ObjectEntity, error) {
+	l := or.l.With(
+		zap.String("operation", "get objects by params"),
+		zap.String("layer", "repo"),
+	)
+
+	getObjectsQuery := squirrel.Select("*").From("internal_object").
+		Limit(uint64(params.Limit)).
+		Offset(uint64(params.Offset)).
+		PlaceholderFormat(squirrel.Dollar)
+
+	q, args, err := getObjectsQuery.ToSql()
+	if err != nil {
+		l.Warn("error build sql", zap.Error(err))
+
+		return nil, err
+	}
+
+	row, err := or.db.Query(ctx, q, args...)
+	if err != nil {
+		l.Warn("error get objects by params", zap.Error(err))
+
+		return nil, err
+	}
+
+	objects, err := pgx.CollectRows(row, pgx.RowToStructByName[permissions.ObjectEntity])
+	if err != nil {
+		l.Warn("error collect objects to struct", zap.Error(err))
+
+		return nil, err
+	}
+
+	return objects, nil
 }

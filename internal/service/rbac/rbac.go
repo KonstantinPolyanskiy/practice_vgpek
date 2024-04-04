@@ -6,7 +6,10 @@ import (
 	"go.uber.org/zap"
 )
 
-const ObjectName = "RBAC"
+const (
+	ObjectName    = "RBAC"
+	GetActionName = "GET"
+)
 
 var (
 	ErrDontHavePermission = errors.New("нет доступа")

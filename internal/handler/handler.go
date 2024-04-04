@@ -30,6 +30,9 @@ type RBACHandler interface {
 
 	GetActions(w http.ResponseWriter, r *http.Request)
 	GetAction(w http.ResponseWriter, r *http.Request)
+
+	GetObject(w http.ResponseWriter, r *http.Request)
+	GetObjects(w http.ResponseWriter, r *http.Request)
 }
 
 type Handler struct {
@@ -73,12 +76,17 @@ func (h Handler) Init() *chi.Mux {
 
 		r.Post("/", h.RBACHandler.AddAction)
 
-		r.Get("/", h.GetAction)
+		r.Get("/", h.RBACHandler.GetAction)
 		r.Get("/params", h.RBACHandler.GetActions)
 	})
 
 	r.Route("/object", func(r chi.Router) {
+		r.Use(h.AuthnHandler.Identity)
+
 		r.Post("/", h.RBACHandler.AddObject)
+
+		r.Get("/", h.RBACHandler.GetObject)
+		r.Get("/params", h.RBACHandler.GetObjects)
 	})
 
 	r.Route("/role", func(r chi.Router) {
