@@ -2,7 +2,6 @@ package reg_key
 
 import (
 	"context"
-	"errors"
 	"go.uber.org/zap"
 	"practice_vgpek/internal/model/params"
 	"practice_vgpek/internal/model/permissions"
@@ -15,10 +14,6 @@ var (
 	NewKeyOperation        = "создание нового ключа"
 	InvalidateKeyOperation = "удаление ключа"
 	GetKeysOperation       = "получение ключей"
-)
-
-var (
-	ErrDontHavePermission = errors.New("нет доступа")
 )
 
 type Repository interface {

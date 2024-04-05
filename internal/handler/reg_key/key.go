@@ -10,7 +10,8 @@ import (
 type Service interface {
 	NewKey(ctx context.Context, req registration_key.AddReq) (registration_key.AddResp, error)
 	InvalidateKey(ctx context.Context, req registration_key.DeleteReq) (registration_key.DeleteResp, error)
-	Keys(ctx context.Context, keyParams params.Key) (registration_key.GetKeysResp, error)
+
+	KeysByParams(ctx context.Context, keyParams params.Key) ([]registration_key.Entity, error)
 }
 
 type Handler struct {

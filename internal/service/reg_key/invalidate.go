@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"go.uber.org/zap"
+	"practice_vgpek/internal/model/permissions"
 	"practice_vgpek/internal/model/registration_key"
 )
 
@@ -20,33 +21,25 @@ func (s Service) InvalidateKey(ctx context.Context, deletingKey registration_key
 	resCh := make(chan InvalidateKeyResult)
 
 	l := s.l.With(
-		zap.String("operation", InvalidateKeyOperation),
-		zap.String("layer", "services"),
+		zap.String("операция", InvalidateKeyOperation),
+		zap.String("слой", "services"),
 	)
 
 	go func() {
 		if deletingKey.KeyId <= 0 {
-			l.Warn("incorrect key id", zap.Int("key id", deletingKey.KeyId))
+			l.Warn("неправильный id ключа", zap.Int("id ключа", deletingKey.KeyId))
 
-			sendInvalidateKeyResult(resCh, registration_key.DeleteResp{}, "неправильный id")
+			sendInvalidateKeyResult(resCh, registration_key.DeleteResp{}, "Неправильный id")
 			return
 		}
 
 		accountId := ctx.Value("AccountId").(int)
 
-		role, err := s.accountMediator.RoleByAccountId(ctx, accountId)
-		if err != nil {
-			l.Warn("error get role by account id", zap.Error(err))
-
-			sendInvalidateKeyResult(resCh, registration_key.DeleteResp{}, "ошибка проверки доступа")
-			return
-		}
-
-		hasAccess, err := s.accountMediator.HasAccess(ctx, role.Id, ObjectName, InvalidateActionName)
+		hasAccess, err := s.accountMediator.HasAccess(ctx, accountId, ObjectName, InvalidateActionName)
 		if err != nil || !hasAccess {
 			l.Warn("ошибка при проверке прав", zap.Error(err))
 
-			sendInvalidateKeyResult(resCh, registration_key.DeleteResp{}, ErrDontHavePermission.Error())
+			sendInvalidateKeyResult(resCh, registration_key.DeleteResp{}, permissions.ErrDontHavePerm.Error())
 			return
 		}
 
@@ -54,7 +47,7 @@ func (s Service) InvalidateKey(ctx context.Context, deletingKey registration_key
 		if err != nil {
 			l.Warn("ошибка деактивации ключа", zap.Error(err))
 
-			sendInvalidateKeyResult(resCh, registration_key.DeleteResp{}, "ошибка деактивации ключа")
+			sendInvalidateKeyResult(resCh, registration_key.DeleteResp{}, "Ошибка деактивации ключа")
 			return
 		}
 

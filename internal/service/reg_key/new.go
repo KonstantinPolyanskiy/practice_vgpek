@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"go.uber.org/zap"
+	"practice_vgpek/internal/model/permissions"
 	"practice_vgpek/internal/model/registration_key"
 	"practice_vgpek/pkg/rndutils"
 )
@@ -21,16 +22,16 @@ func (s Service) NewKey(ctx context.Context, req registration_key.AddReq) (regis
 	resCh := make(chan CreatingKeyResult)
 
 	l := s.l.With(
-		zap.String("action", NewKeyOperation),
-		zap.String("layer", "services"),
+		zap.String("операция", NewKeyOperation),
+		zap.String("слой", "сервисы"),
 	)
 
 	go func() {
 		// Проверяем что указанное количество использований ключа больше 0
 		if req.MaxCountUsages <= 0 {
-			l.Warn("incorrect max count usages", zap.Int("max count usages", req.MaxCountUsages))
+			l.Warn("неправильное макс. кол-во использований ключа", zap.Int("макс кол-во использований", req.MaxCountUsages))
 
-			sendNewKeyResult(resCh, registration_key.AddResp{}, "неправильное кол-во использований ключа")
+			sendNewKeyResult(resCh, registration_key.AddResp{}, "Неправильное кол-во использований ключа")
 			return
 		}
 
@@ -49,7 +50,7 @@ func (s Service) NewKey(ctx context.Context, req registration_key.AddReq) (regis
 		if err != nil || !hasAccess {
 			l.Warn("возникла ошибка при проверке прав", zap.Error(err))
 
-			sendNewKeyResult(resCh, registration_key.AddResp{}, ErrDontHavePermission.Error())
+			sendNewKeyResult(resCh, registration_key.AddResp{}, permissions.ErrDontHavePerm.Error())
 			return
 		}
 
@@ -63,13 +64,7 @@ func (s Service) NewKey(ctx context.Context, req registration_key.AddReq) (regis
 		// Сохраняем ключ
 		savedKey, err := s.r.SaveKey(ctx, dto)
 		if err != nil {
-			l.Warn("error save key in db",
-				zap.String("body", dto.Body),
-				zap.Int("max count usages", dto.MaxCountUsages),
-				zap.Int("rbac id", dto.RoleId),
-			)
-
-			sendNewKeyResult(resCh, registration_key.AddResp{}, "ошибка сохранения ключа")
+			sendNewKeyResult(resCh, registration_key.AddResp{}, "Ошибка сохранения ключа")
 			return
 		}
 

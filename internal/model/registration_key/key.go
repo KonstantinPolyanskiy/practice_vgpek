@@ -15,8 +15,19 @@ type AddResp struct {
 	CreatedAt          time.Time `json:"created_at"`
 }
 
+type GetKeyResp struct {
+	RegKeyId           int        `json:"reg_key_id"`
+	RoleId             int        `json:"role_id"`
+	Body               string     `json:"body"`
+	MaxCountUsages     int        `json:"max_count_usages"`
+	CurrentCountUsages int        `json:"current_count_usages"`
+	CreatedAt          time.Time  `json:"created_at"`
+	IsValid            bool       `json:"is_valid"`
+	InvalidationTime   *time.Time `json:"invalidation_time"`
+}
+
 type GetKeysResp struct {
-	Keys []Entity `json:"keys"`
+	Keys []GetKeyResp `json:"keys"`
 }
 
 type DeleteReq struct {

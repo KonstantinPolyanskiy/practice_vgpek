@@ -45,14 +45,7 @@ func (h Handler) Registration(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&registering)
 	if err != nil {
-		l.Warn("ошибка декодирования данных", zap.Error(err),
-			zap.String("имя", registering.Personality.FirstName),
-			zap.String("фамилия", registering.Personality.LastName),
-			zap.String("отчество", registering.Personality.MiddleName),
-			zap.String("ключ регистрации", registering.RegistrationKey),
-			zap.String("логин", registering.Credentials.Login),
-			zap.String("пароль", registering.Credentials.Password),
-		)
+		l.Warn("ошибка декодирования данных", zap.Error(err))
 
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
 			Action: authn.RegistrationOperation,
@@ -60,6 +53,15 @@ func (h Handler) Registration(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
+	l.Info("попытка регистрации пользователя",
+		zap.String("имя", registering.Personality.FirstName),
+		zap.String("фамилия", registering.Personality.LastName),
+		zap.String("отчество", registering.Personality.MiddleName),
+		zap.String("ключ регистрации", registering.RegistrationKey),
+		zap.String("логин", registering.Credentials.Login),
+		zap.String("пароль", registering.Credentials.Password),
+	)
 
 	registered, err := h.s.NewPerson(ctx, registering)
 	if err != nil {
@@ -103,10 +105,7 @@ func (h Handler) Login(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&logIn)
 	if err != nil {
-		l.Warn("ошибка декодирования данных", zap.Error(err),
-			zap.String("логин", logIn.Login),
-			zap.String("пароль", logIn.Password),
-		)
+		l.Warn("ошибка декодирования данных", zap.Error(err))
 
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
 			Action: authn.LoginOperation,
@@ -114,6 +113,11 @@ func (h Handler) Login(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
+	l.Info("попытка входа",
+		zap.String("логин", logIn.Login),
+		zap.String("пароль", logIn.Password),
+	)
 
 	token, err := h.s.NewToken(ctx, logIn)
 	if err != nil {

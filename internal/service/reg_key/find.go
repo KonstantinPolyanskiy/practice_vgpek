@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go.uber.org/zap"
 	"practice_vgpek/internal/model/params"
+	"practice_vgpek/internal/model/permissions"
 	"practice_vgpek/internal/model/registration_key"
 )
 
@@ -13,57 +14,43 @@ const (
 )
 
 type GetKeysResult struct {
-	Keys  registration_key.GetKeysResp
+	Keys  []registration_key.Entity
 	Error error
 }
 
-func (s Service) Keys(ctx context.Context, keyParams params.Key) (registration_key.GetKeysResp, error) {
+func (s Service) KeysByParams(ctx context.Context, keyParams params.Key) ([]registration_key.Entity, error) {
 	resCh := make(chan GetKeysResult)
 
 	l := s.l.With(
-		zap.String("operation", GetKeysOperation),
-		zap.String("layer", "services"),
+		zap.String("операция", GetKeysOperation),
+		zap.String("слой", "сервисы"),
 	)
 
 	go func() {
 		accountId := ctx.Value("AccountId").(int)
 
-		role, err := s.accountMediator.RoleByAccountId(ctx, accountId)
-		if err != nil {
-			sendGetKeysResult(resCh, registration_key.GetKeysResp{}, err.Error())
-			return
-		}
-
-		hasAccess, err := s.accountMediator.HasAccess(ctx, role.Id, ObjectName, AddActionName)
+		hasAccess, err := s.accountMediator.HasAccess(ctx, accountId, ObjectName, AddActionName)
 		if err != nil || !hasAccess {
 			l.Warn("возникла ошибка при проверке прав", zap.Error(err))
 
-			sendGetKeysResult(resCh, registration_key.GetKeysResp{}, ErrDontHavePermission.Error())
+			sendGetKeysResult(resCh, nil, permissions.ErrDontHavePerm.Error())
 			return
 		}
 
 		keys, err := s.r.KeysByParams(ctx, keyParams)
 		if err != nil {
-			l.Warn("error get keys by params",
-				zap.Int("limit", keyParams.Limit),
-				zap.Int("offset", keyParams.Offset),
-				zap.Error(err),
-			)
-
-			sendGetKeysResult(resCh, registration_key.GetKeysResp{}, "ошибка получения ключей")
+			sendGetKeysResult(resCh, nil, "Ошибка получения ключей")
 			return
 		}
 
-		resp := registration_key.GetKeysResp{Keys: keys}
-
-		sendGetKeysResult(resCh, resp, "")
+		sendGetKeysResult(resCh, keys, "")
 		return
 	}()
 
 	for {
 		select {
 		case <-ctx.Done():
-			return registration_key.GetKeysResp{}, ctx.Err()
+			return nil, ctx.Err()
 		case result := <-resCh:
 			return result.Keys, result.Error
 
@@ -71,7 +58,7 @@ func (s Service) Keys(ctx context.Context, keyParams params.Key) (registration_k
 	}
 }
 
-func sendGetKeysResult(resCh chan GetKeysResult, resp registration_key.GetKeysResp, errMsg string) {
+func sendGetKeysResult(resCh chan GetKeysResult, resp []registration_key.Entity, errMsg string) {
 	var err error
 
 	if errMsg != "" {
