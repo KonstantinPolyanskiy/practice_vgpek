@@ -8,12 +8,6 @@ import (
 	"practice_vgpek/internal/model/permissions"
 )
 
-const (
-	AddRoleOperation  = "добавление роли"
-	GetRoleOperation  = "получение роли"
-	GetRolesOperation = "получение ролей"
-)
-
 type RoleRepository interface {
 	SaveRole(ctx context.Context, savingRole permissions.RoleDTO) (permissions.RoleEntity, error)
 	RoleById(ctx context.Context, id int) (permissions.RoleEntity, error)

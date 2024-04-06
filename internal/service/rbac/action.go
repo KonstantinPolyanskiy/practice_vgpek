@@ -8,12 +8,6 @@ import (
 	"practice_vgpek/internal/model/permissions"
 )
 
-const (
-	AddActionOperation  = "добавление права действия в системе"
-	GetActionOperation  = "получение права действия по id"
-	GetActionsOperation = "получение прав действий по параметрам"
-)
-
 type ActionRepository interface {
 	SaveAction(ctx context.Context, savingAction permissions.ActionDTO) (permissions.ActionEntity, error)
 	ActionById(ctx context.Context, id int) (permissions.ActionEntity, error)

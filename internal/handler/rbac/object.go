@@ -7,8 +7,8 @@ import (
 	"github.com/go-chi/render"
 	"go.uber.org/zap"
 	"net/http"
+	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/permissions"
-	"practice_vgpek/internal/service/rbac"
 	"practice_vgpek/pkg/apperr"
 	"practice_vgpek/pkg/queryutils"
 	"strconv"
@@ -23,7 +23,7 @@ func (h AccessHandler) AddObject(w http.ResponseWriter, r *http.Request) {
 
 	l := h.l.With(
 		zap.String("endpoint", r.RequestURI),
-		zap.String("action", rbac.AddObjectOperation),
+		zap.String("action", operation.AddObjectOperation),
 		zap.String("layer", "handlers"),
 	)
 
@@ -32,7 +32,7 @@ func (h AccessHandler) AddObject(w http.ResponseWriter, r *http.Request) {
 		l.Warn("error parse new object request")
 
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
-			Action: rbac.AddObjectOperation,
+			Action: operation.AddObjectOperation,
 			Error:  "Преобразование запроса на добавление объекта",
 		})
 		return
@@ -42,7 +42,7 @@ func (h AccessHandler) AddObject(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
-				Action: rbac.AddObjectOperation,
+				Action: operation.AddObjectOperation,
 				Error:  "таймаут",
 			})
 			return
@@ -50,7 +50,7 @@ func (h AccessHandler) AddObject(w http.ResponseWriter, r *http.Request) {
 			l.Warn("error add object", zap.String("object name", addingObject.Name))
 
 			apperr.New(w, r, http.StatusInternalServerError, apperr.AppError{
-				Action: rbac.AddObjectOperation,
+				Action: operation.AddObjectOperation,
 				Error:  err.Error(),
 			})
 			return
@@ -69,7 +69,7 @@ func (h AccessHandler) GetObject(w http.ResponseWriter, r *http.Request) {
 
 	l := h.l.With(
 		zap.String("endpoint", r.RequestURI),
-		zap.String("operation", rbac.GetObjectOperation),
+		zap.String("operation", operation.GetObjectOperation),
 		zap.String("layer", "handlers"),
 	)
 
@@ -78,7 +78,7 @@ func (h AccessHandler) GetObject(w http.ResponseWriter, r *http.Request) {
 		l.Warn("error parse get object request", zap.Error(err))
 
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
-			Action: rbac.GetObjectOperation,
+			Action: operation.GetObjectOperation,
 			Error:  "Преобразование запроса на получение действия",
 		})
 		return
@@ -88,19 +88,19 @@ func (h AccessHandler) GetObject(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
-				Action: rbac.GetObjectOperation,
+				Action: operation.GetObjectOperation,
 				Error:  "Таймаут",
 			})
 			return
 		} else if err != nil {
 			code := http.StatusInternalServerError
 
-			if errors.Is(err, rbac.ErrDontHavePermission) {
+			if errors.Is(err, permissions.ErrDontHavePerm) {
 				code = http.StatusForbidden
 			}
 
 			apperr.New(w, r, code, apperr.AppError{
-				Action: rbac.GetObjectOperation,
+				Action: operation.GetObjectOperation,
 				Error:  err.Error(),
 			})
 			return
@@ -121,7 +121,7 @@ func (h AccessHandler) GetObjects(w http.ResponseWriter, r *http.Request) {
 	defaultParams, err := queryutils.DefaultParams(r, 10, 0)
 	if err != nil {
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
-			Action: rbac.GetObjectsOperation,
+			Action: operation.GetObjectsOperation,
 			Error:  "Неправильные параметры запроса",
 		})
 		return
@@ -130,19 +130,19 @@ func (h AccessHandler) GetObjects(w http.ResponseWriter, r *http.Request) {
 	objects, err := h.s.ObjectsByParams(ctx, defaultParams)
 	if errors.Is(err, context.DeadlineExceeded) {
 		apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
-			Action: rbac.GetObjectsOperation,
+			Action: operation.GetObjectsOperation,
 			Error:  "Таймаут",
 		})
 		return
 	} else if err != nil {
 		code := http.StatusInternalServerError
 
-		if errors.Is(err, rbac.ErrDontHavePermission) {
+		if errors.Is(err, permissions.ErrDontHavePerm) {
 			code = http.StatusForbidden
 		}
 
 		apperr.New(w, r, code, apperr.AppError{
-			Action: rbac.GetObjectsOperation,
+			Action: operation.GetObjectsOperation,
 			Error:  err.Error(),
 		})
 		return

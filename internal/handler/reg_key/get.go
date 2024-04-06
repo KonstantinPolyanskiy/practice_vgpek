@@ -6,10 +6,10 @@ import (
 	"github.com/go-chi/render"
 	"go.uber.org/zap"
 	"net/http"
+	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/params"
 	"practice_vgpek/internal/model/permissions"
 	"practice_vgpek/internal/model/registration_key"
-	"practice_vgpek/internal/service/reg_key"
 	"practice_vgpek/pkg/apperr"
 	"practice_vgpek/pkg/queryutils"
 	"time"
@@ -21,7 +21,7 @@ func (h Handler) GetKeys(w http.ResponseWriter, r *http.Request) {
 
 	l := h.l.With(
 		zap.String("адрес", r.RequestURI),
-		zap.String("операция", reg_key.GetKeysOperation),
+		zap.String("operation", operation.GetKeysOperation),
 		zap.String("слой", "http обработчики"),
 	)
 
@@ -30,7 +30,7 @@ func (h Handler) GetKeys(w http.ResponseWriter, r *http.Request) {
 		l.Warn("ошибка получения параметров запроса", zap.Error(err))
 
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
-			Action: reg_key.GetKeysOperation,
+			Action: operation.GetKeysOperation,
 			Error:  "Неправильные параметры запроса",
 		})
 		return
@@ -49,7 +49,7 @@ func (h Handler) GetKeys(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
-				Action: reg_key.GetKeysOperation,
+				Action: operation.GetKeysOperation,
 				Error:  "Таймаут",
 			})
 			return
@@ -61,7 +61,7 @@ func (h Handler) GetKeys(w http.ResponseWriter, r *http.Request) {
 			}
 
 			apperr.New(w, r, code, apperr.AppError{
-				Action: reg_key.GetKeysOperation,
+				Action: operation.GetKeysOperation,
 				Error:  err.Error(),
 			})
 			return

@@ -7,6 +7,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"go.uber.org/zap"
 	"practice_vgpek/internal/model/account"
+	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/person"
 	"practice_vgpek/internal/model/registration_key"
 	accountRepo "practice_vgpek/internal/repository/account"
@@ -70,7 +71,7 @@ func (s Service) NewPerson(ctx context.Context, registering person.RegistrationR
 	resCh := make(chan RegistrationResult)
 
 	l := s.l.With(
-		zap.String("операция", RegistrationOperation),
+		zap.String("операция", operation.RegistrationOperation),
 		zap.String("слой", "сервисы"),
 	)
 

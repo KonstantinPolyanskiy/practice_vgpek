@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"go.uber.org/zap"
+	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/permissions"
 	"practice_vgpek/internal/model/registration_key"
 	"practice_vgpek/pkg/rndutils"
@@ -22,7 +23,7 @@ func (s Service) NewKey(ctx context.Context, req registration_key.AddReq) (regis
 	resCh := make(chan CreatingKeyResult)
 
 	l := s.l.With(
-		zap.String("операция", NewKeyOperation),
+		zap.String("операция", operation.NewKeyOperation),
 		zap.String("слой", "сервисы"),
 	)
 

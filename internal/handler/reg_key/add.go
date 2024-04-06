@@ -7,9 +7,9 @@ import (
 	"github.com/go-chi/render"
 	"go.uber.org/zap"
 	"net/http"
+	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/permissions"
 	"practice_vgpek/internal/model/registration_key"
-	"practice_vgpek/internal/service/reg_key"
 	"practice_vgpek/pkg/apperr"
 	"time"
 )
@@ -23,7 +23,7 @@ func (h Handler) AddKey(w http.ResponseWriter, r *http.Request) {
 
 	l := h.l.With(
 		zap.String("адрес", r.RequestURI),
-		zap.String("операция", reg_key.NewKeyOperation),
+		zap.String("операция", operation.NewKeyOperation),
 		zap.String("слой", "http обработчики"),
 	)
 
@@ -32,7 +32,7 @@ func (h Handler) AddKey(w http.ResponseWriter, r *http.Request) {
 		l.Warn("ошибка декодирования данных", zap.Error(err))
 
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
-			Action: reg_key.NewKeyOperation,
+			Action: operation.NewKeyOperation,
 			Error:  "Преобразование запроса",
 		})
 		return
@@ -47,7 +47,7 @@ func (h Handler) AddKey(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
-				Action: reg_key.NewKeyOperation,
+				Action: operation.NewKeyOperation,
 				Error:  "Таймаут",
 			})
 			return
@@ -59,7 +59,7 @@ func (h Handler) AddKey(w http.ResponseWriter, r *http.Request) {
 			}
 
 			apperr.New(w, r, status, apperr.AppError{
-				Action: reg_key.NewKeyOperation,
+				Action: operation.NewKeyOperation,
 				Error:  err.Error(),
 			})
 			return

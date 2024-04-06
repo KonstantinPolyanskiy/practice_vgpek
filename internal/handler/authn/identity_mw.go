@@ -3,7 +3,7 @@ package authn
 import (
 	"context"
 	"net/http"
-	"practice_vgpek/internal/service/authn"
+	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/pkg/apperr"
 	"strings"
 )
@@ -14,7 +14,7 @@ func (h Handler) Identity(next http.Handler) http.Handler {
 
 		if header == "" {
 			apperr.New(w, r, http.StatusUnauthorized, apperr.AppError{
-				Action: authn.LoginOperation,
+				Action: operation.LoginOperation,
 				Error:  "пустой хедер Authorization",
 			})
 			return
@@ -23,7 +23,7 @@ func (h Handler) Identity(next http.Handler) http.Handler {
 		headerParts := strings.Split(header, " ")
 		if len(headerParts) != 2 {
 			apperr.New(w, r, http.StatusUnauthorized, apperr.AppError{
-				Action: authn.LoginOperation,
+				Action: operation.LoginOperation,
 				Error:  "невалидный хедер Authorization",
 			})
 			return
@@ -32,7 +32,7 @@ func (h Handler) Identity(next http.Handler) http.Handler {
 		id, err := h.s.ParseToken(headerParts[1])
 		if err != nil {
 			apperr.New(w, r, http.StatusUnauthorized, apperr.AppError{
-				Action: authn.LoginOperation,
+				Action: operation.LoginOperation,
 				Error:  err.Error(),
 			})
 			return

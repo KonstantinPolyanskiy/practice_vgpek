@@ -2,18 +2,12 @@ package rbac
 
 import (
 	"context"
-	"errors"
 	"go.uber.org/zap"
 )
 
 const (
 	ObjectName    = "RBAC"
 	GetActionName = "GET"
-)
-
-var (
-	ErrDontHavePermission = errors.New("нет доступа")
-	ErrCheckAccess        = errors.New("ошибка проверки доступа")
 )
 
 type AccountMediator interface {

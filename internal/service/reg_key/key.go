@@ -10,12 +10,6 @@ import (
 
 const ObjectName = "KEY"
 
-var (
-	NewKeyOperation        = "создание нового ключа"
-	InvalidateKeyOperation = "удаление ключа"
-	GetKeysOperation       = "получение ключей"
-)
-
 type Repository interface {
 	SaveKey(ctx context.Context, key registration_key.DTO) (registration_key.Entity, error)
 	KeysByParams(ctx context.Context, params params.Key) ([]registration_key.Entity, error)

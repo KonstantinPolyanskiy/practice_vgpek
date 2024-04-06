@@ -8,12 +8,6 @@ import (
 	"practice_vgpek/internal/model/permissions"
 )
 
-const (
-	AddObjectOperation  = "добавление объекта действия в системе"
-	GetObjectOperation  = "получение объекта действия"
-	GetObjectsOperation = "получение объектов действий"
-)
-
 type ObjectRepository interface {
 	SaveObject(ctx context.Context, savingObject permissions.ObjectDTO) (permissions.ObjectEntity, error)
 	ObjectById(ctx context.Context, id int) (permissions.ObjectEntity, error)

@@ -7,8 +7,8 @@ import (
 	"github.com/go-chi/render"
 	"go.uber.org/zap"
 	"net/http"
+	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/permissions"
-	"practice_vgpek/internal/service/rbac"
 	"practice_vgpek/pkg/apperr"
 	"time"
 )
@@ -21,7 +21,7 @@ func (h AccessHandler) AddPermission(w http.ResponseWriter, r *http.Request) {
 
 	l := h.l.With(
 		zap.String("endpoint", r.RequestURI),
-		zap.String("action", rbac.AddPermissionOperation),
+		zap.String("action", operation.AddPermissionOperation),
 		zap.String("layer", "handlers"),
 	)
 
@@ -30,7 +30,7 @@ func (h AccessHandler) AddPermission(w http.ResponseWriter, r *http.Request) {
 		l.Warn("error parse new perm request", zap.Error(err))
 
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
-			Action: rbac.AddPermissionOperation,
+			Action: operation.AddPermissionOperation,
 			Error:  "Преобразование запроса на добавление доступа",
 		})
 		return
@@ -40,7 +40,7 @@ func (h AccessHandler) AddPermission(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
-				Action: rbac.AddPermissionOperation,
+				Action: operation.AddPermissionOperation,
 				Error:  "таймаут",
 			})
 			return
@@ -48,7 +48,7 @@ func (h AccessHandler) AddPermission(w http.ResponseWriter, r *http.Request) {
 			l.Warn("error add permission", zap.Ints("adding id's", addingPerm.ActionsId))
 
 			apperr.New(w, r, http.StatusInternalServerError, apperr.AppError{
-				Action: rbac.AddPermissionOperation,
+				Action: operation.AddPermissionOperation,
 				Error:  err.Error(),
 			})
 			return

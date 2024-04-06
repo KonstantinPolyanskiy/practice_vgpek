@@ -7,10 +7,6 @@ import (
 	"practice_vgpek/internal/model/permissions"
 )
 
-const (
-	AddPermissionOperation = "добавление права действия в системе"
-)
-
 type PermissionRepo interface {
 	SavePermission(ctx context.Context, roleId, objectId int, actionsId []int) error
 }

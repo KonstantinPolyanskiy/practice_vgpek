@@ -6,6 +6,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
+	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/registration_key"
 	"time"
 )
@@ -24,8 +25,8 @@ func NewKeyRepo(db *pgxpool.Pool, logger *zap.Logger) Repository {
 
 func (r Repository) SaveKey(ctx context.Context, key registration_key.DTO) (registration_key.Entity, error) {
 	l := r.l.With(
-		zap.String("action query", "save key"),
-		zap.String("layer", "repo"),
+		zap.String("операция", operation.NewKeyOperation),
+		zap.String("слой", "репозиторий"),
 	)
 
 	var insertedKeyId int
@@ -36,8 +37,6 @@ func (r Repository) SaveKey(ctx context.Context, key registration_key.DTO) (regi
 	RETURNING reg_key_id
 	`
 
-	l.Debug("insert key", zap.String("query", insertKeyQuery))
-
 	args := pgx.NamedArgs{
 		"RoleId":             key.RoleId,
 		"BodyKey":            key.Body,
@@ -46,18 +45,10 @@ func (r Repository) SaveKey(ctx context.Context, key registration_key.DTO) (regi
 		"CreatedAt":          time.Now(),
 	}
 
-	l.Debug("args in query",
-		zap.Int("rbac id", key.RoleId),
-		zap.String("body key", key.Body),
-		zap.Int("max count", key.MaxCountUsages),
-		zap.Any("current count", args["CurrentCountUsages"]),
-		zap.Any("created at", args["CreatedAt"]),
-	)
-
 	// Вставляем полученный ключ в БД и получаем его ID
 	err := r.db.QueryRow(ctx, insertKeyQuery, args).Scan(&insertedKeyId)
 	if err != nil {
-		l.Warn("error insert key", zap.Error(err))
+		l.Warn("ошибка выполнения запроса", zap.Error(err))
 
 		if errors.Is(err, pgx.ErrNoRows) {
 			return registration_key.Entity{}, errors.New("сохраненный ключ не найден")
@@ -67,11 +58,9 @@ func (r Repository) SaveKey(ctx context.Context, key registration_key.DTO) (regi
 
 	getKeyQuery := `SELECT * FROM registration_key WHERE reg_key_id = $1`
 
-	l.Debug("get inserted key", zap.String("query", getKeyQuery))
-
 	row, err := r.db.Query(ctx, getKeyQuery, insertedKeyId)
 	if err != nil {
-		l.Warn("error get inserted key", zap.Error(err))
+		l.Warn("ошибка выполнения запроса", zap.Error(err))
 
 		if errors.Is(err, pgx.ErrNoRows) {
 			return registration_key.Entity{}, errors.New("сохраненный ключ не найден")
@@ -81,7 +70,7 @@ func (r Repository) SaveKey(ctx context.Context, key registration_key.DTO) (regi
 
 	savedKey, err := pgx.CollectOneRow(row, pgx.RowToStructByName[registration_key.Entity])
 	if err != nil {
-		l.Warn("error collect key in struct", zap.Error(err))
+		l.Warn("ошибка выполнения запроса", zap.Error(err))
 
 		return registration_key.Entity{}, err
 	}
@@ -91,8 +80,8 @@ func (r Repository) SaveKey(ctx context.Context, key registration_key.DTO) (regi
 
 func (r Repository) RegKeyByBody(ctx context.Context, body string) (registration_key.Entity, error) {
 	l := r.l.With(
-		zap.String("action", "get key by body"),
-		zap.String("layer", "repo"),
+		zap.String("операция", operation.GetKeyByBodyOperation),
+		zap.String("слой", "репозиторий"),
 	)
 
 	findRoleQuery := `
@@ -100,18 +89,14 @@ func (r Repository) RegKeyByBody(ctx context.Context, body string) (registration
 		WHERE body_key = @BodyKey 
 	`
 
-	l.Debug("get key", zap.String("query", findRoleQuery))
-
 	args := pgx.NamedArgs{
 		"BodyKey": body,
 	}
 
-	l.Debug("args in query", zap.String("body", body))
-
 	// Находим ключ по телу (body) - он должен существовать в одном экземпляре
 	row, err := r.db.Query(ctx, findRoleQuery, args)
 	if err != nil {
-		l.Warn("error get key by body", zap.Error(err))
+		l.Warn("ошибка выполнения запроса", zap.Error(err))
 
 		if errors.Is(err, pgx.ErrNoRows) {
 			return registration_key.Entity{}, errors.New("ключ регистрации по телу не найден")
@@ -121,7 +106,7 @@ func (r Repository) RegKeyByBody(ctx context.Context, body string) (registration
 
 	regKey, err := pgx.CollectOneRow(row, pgx.RowToStructByName[registration_key.Entity])
 	if err != nil {
-		l.Warn("error collect key in struct")
+		l.Warn("ошибка приведения данных к структуре", zap.Error(err))
 
 		return registration_key.Entity{}, err
 	}
@@ -131,25 +116,22 @@ func (r Repository) RegKeyByBody(ctx context.Context, body string) (registration
 
 func (r Repository) RegKeyById(ctx context.Context, id int) (registration_key.Entity, error) {
 	l := r.l.With(
-		zap.String("action", "get key by id"),
-		zap.String("layer", "repo"),
+		zap.String("операция", operation.GetKeyByIdOperation),
+		zap.String("слой", "репозиторий"),
 	)
 
 	findRoleQuery := `SELECT * FROM registration_key WHERE reg_key_id = $1`
 
 	row, err := r.db.Query(ctx, findRoleQuery, id)
 	if err != nil {
-		l.Warn("error get key by id",
-			zap.Int("key id", id),
-			zap.Error(err),
-		)
+		l.Warn("ошибка выполнения запроса", zap.Error(err))
 
 		return registration_key.Entity{}, err
 	}
 
 	key, err := pgx.CollectOneRow(row, pgx.RowToStructByName[registration_key.Entity])
 	if err != nil {
-		l.Warn("error collect key in struct", zap.Error(err))
+		l.Warn("ошибка приведения данных к структуре", zap.Error(err))
 
 		return registration_key.Entity{}, err
 	}
@@ -159,8 +141,8 @@ func (r Repository) RegKeyById(ctx context.Context, id int) (registration_key.En
 
 func (r Repository) IncCountUsages(ctx context.Context, keyId int) error {
 	l := r.l.With(
-		zap.String("action", "increment key count"),
-		zap.String("layer", "repo"),
+		zap.String("операция", operation.IncCountUsagesOperation),
+		zap.String("слой", "репозиторий"),
 	)
 
 	incrementCountQuery := `
@@ -169,11 +151,9 @@ func (r Repository) IncCountUsages(ctx context.Context, keyId int) error {
 	WHERE reg_key_id = $1
 `
 
-	l.Debug("increment key", zap.String("query", incrementCountQuery))
-
 	_, err := r.db.Exec(ctx, incrementCountQuery, keyId)
 	if err != nil {
-		l.Warn("error increment key", zap.Error(err))
+		l.Warn("ошибка выполнения запроса", zap.Error(err))
 
 		return errors.Join(ErrNotUpdate, err)
 	}
@@ -183,8 +163,8 @@ func (r Repository) IncCountUsages(ctx context.Context, keyId int) error {
 
 func (r Repository) Invalidate(ctx context.Context, keyId int) error {
 	l := r.l.With(
-		zap.String("action", "invalidate key"),
-		zap.String("layer", "repo"),
+		zap.String("операция", operation.InvalidateKeyOperation),
+		zap.String("слой", "репозиторий"),
 	)
 
 	invalidateKeyQuery := `
@@ -196,11 +176,9 @@ func (r Repository) Invalidate(ctx context.Context, keyId int) error {
 	WHERE reg_key_id = $1
 `
 
-	l.Debug("invalidate key", zap.String("query", invalidateKeyQuery))
-
 	_, err := r.db.Exec(ctx, invalidateKeyQuery, keyId, time.Now())
 	if err != nil {
-		l.Warn("error invalidate key", zap.Error(err))
+		l.Warn("ошибка выполнения запроса", zap.Error(err))
 
 		return err
 	}

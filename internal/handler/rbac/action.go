@@ -7,8 +7,8 @@ import (
 	"github.com/go-chi/render"
 	"go.uber.org/zap"
 	"net/http"
+	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/permissions"
-	"practice_vgpek/internal/service/rbac"
 	"practice_vgpek/pkg/apperr"
 	"practice_vgpek/pkg/queryutils"
 	"strconv"
@@ -22,9 +22,9 @@ func (h AccessHandler) AddAction(w http.ResponseWriter, r *http.Request) {
 	var addingAction permissions.AddActionReq
 
 	l := h.l.With(
-		zap.String("endpoint", r.RequestURI),
-		zap.String("action", rbac.AddActionOperation),
-		zap.String("layer", "handlers"),
+		zap.String("адрес", r.RequestURI),
+		zap.String("операция", operation.AddActionOperation),
+		zap.String("слой", "http обработчики"),
 	)
 
 	err := json.NewDecoder(r.Body).Decode(&addingAction)
@@ -32,8 +32,7 @@ func (h AccessHandler) AddAction(w http.ResponseWriter, r *http.Request) {
 		l.Warn("error parse new action request", zap.Error(err))
 
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
-			//TODO: заменить action на константу
-			Action: rbac.AddActionOperation,
+			Action: operation.AddActionOperation,
 			Error:  "Преобразование запроса на добавление действия",
 		})
 		return
@@ -43,7 +42,7 @@ func (h AccessHandler) AddAction(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
-				Action: rbac.AddActionOperation,
+				Action: operation.AddActionOperation,
 				Error:  "Таймаут",
 			})
 			return
@@ -51,7 +50,7 @@ func (h AccessHandler) AddAction(w http.ResponseWriter, r *http.Request) {
 			l.Warn("error add action", zap.String("action name", addingAction.Name))
 
 			apperr.New(w, r, http.StatusInternalServerError, apperr.AppError{
-				Action: rbac.AddActionOperation,
+				Action: operation.AddActionOperation,
 				Error:  err.Error(),
 			})
 			return
@@ -72,7 +71,7 @@ func (h AccessHandler) GetAction(w http.ResponseWriter, r *http.Request) {
 
 	l := h.l.With(
 		zap.String("endpoint", r.RequestURI),
-		zap.String("action", rbac.GetActionOperation),
+		zap.String("action", operation.GetActionOperation),
 		zap.String("layer", "handlers"),
 	)
 
@@ -81,7 +80,7 @@ func (h AccessHandler) GetAction(w http.ResponseWriter, r *http.Request) {
 		l.Warn("error parse get action request", zap.Error(err))
 
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
-			Action: rbac.GetActionOperation,
+			Action: operation.GetActionOperation,
 			Error:  "Преобразование запроса на получение действия",
 		})
 		return
@@ -93,19 +92,19 @@ func (h AccessHandler) GetAction(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
-				Action: rbac.GetActionOperation,
+				Action: operation.GetActionOperation,
 				Error:  "Таймаут",
 			})
 			return
 		} else if err != nil {
 			code := http.StatusInternalServerError
 
-			if errors.Is(err, rbac.ErrDontHavePermission) {
+			if errors.Is(err, permissions.ErrDontHavePerm) {
 				code = http.StatusForbidden
 			}
 
 			apperr.New(w, r, code, apperr.AppError{
-				Action: rbac.GetActionOperation,
+				Action: operation.GetActionOperation,
 				Error:  err.Error(),
 			})
 			return
@@ -126,7 +125,7 @@ func (h AccessHandler) GetActions(w http.ResponseWriter, r *http.Request) {
 	defaultParams, err := queryutils.DefaultParams(r, 10, 0)
 	if err != nil {
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
-			Action: rbac.GetActionsOperation,
+			Action: operation.GetActionsOperation,
 			Error:  "Неправильные параметры запроса",
 		})
 		return
@@ -135,19 +134,19 @@ func (h AccessHandler) GetActions(w http.ResponseWriter, r *http.Request) {
 	actions, err := h.s.ActionsByParams(ctx, defaultParams)
 	if errors.Is(err, context.DeadlineExceeded) {
 		apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
-			Action: rbac.GetActionsOperation,
+			Action: operation.GetActionsOperation,
 			Error:  "неправильные параметры запроса",
 		})
 		return
 	} else if err != nil {
 		code := http.StatusInternalServerError
 
-		if errors.Is(err, rbac.ErrDontHavePermission) {
+		if errors.Is(err, permissions.ErrDontHavePerm) {
 			code = http.StatusForbidden
 		}
 
 		apperr.New(w, r, code, apperr.AppError{
-			Action: rbac.GetActionsOperation,
+			Action: operation.GetActionsOperation,
 			Error:  err.Error(),
 		})
 		return

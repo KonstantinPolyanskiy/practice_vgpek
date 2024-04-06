@@ -7,8 +7,8 @@ import (
 	"github.com/go-chi/render"
 	"go.uber.org/zap"
 	"net/http"
+	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/person"
-	"practice_vgpek/internal/service/authn"
 	"practice_vgpek/pkg/apperr"
 	"time"
 )
@@ -39,7 +39,7 @@ func (h Handler) Registration(w http.ResponseWriter, r *http.Request) {
 
 	l := h.l.With(
 		zap.String("адрес", r.RequestURI),
-		zap.String("операция", authn.RegistrationOperation),
+		zap.String("операция", operation.RegistrationOperation),
 		zap.String("слой", "http обработчики"),
 	)
 
@@ -48,7 +48,7 @@ func (h Handler) Registration(w http.ResponseWriter, r *http.Request) {
 		l.Warn("ошибка декодирования данных", zap.Error(err))
 
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
-			Action: authn.RegistrationOperation,
+			Action: operation.RegistrationOperation,
 			Error:  "Преобразование запроса на регистрацию",
 		})
 		return
@@ -67,13 +67,13 @@ func (h Handler) Registration(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
-				Action: authn.RegistrationOperation,
+				Action: operation.RegistrationOperation,
 				Error:  "Таймаут",
 			})
 			return
 		} else {
 			apperr.New(w, r, http.StatusInternalServerError, apperr.AppError{
-				Action: authn.RegistrationOperation,
+				Action: operation.RegistrationOperation,
 				Error:  err.Error(),
 			})
 			return
@@ -99,7 +99,7 @@ func (h Handler) Login(w http.ResponseWriter, r *http.Request) {
 
 	l := h.l.With(
 		zap.String("адрес", r.RequestURI),
-		zap.String("операция", authn.LoginOperation),
+		zap.String("операция", operation.LoginOperation),
 		zap.String("слой", "http обработчики"),
 	)
 
@@ -108,7 +108,7 @@ func (h Handler) Login(w http.ResponseWriter, r *http.Request) {
 		l.Warn("ошибка декодирования данных", zap.Error(err))
 
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
-			Action: authn.LoginOperation,
+			Action: operation.LoginOperation,
 			Error:  "Преобразование запроса на вход",
 		})
 		return
@@ -123,13 +123,13 @@ func (h Handler) Login(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
-				Action: authn.LoginOperation,
+				Action: operation.LoginOperation,
 				Error:  "Таймаут",
 			})
 			return
 		} else {
 			apperr.New(w, r, http.StatusInternalServerError, apperr.AppError{
-				Action: authn.LoginOperation,
+				Action: operation.LoginOperation,
 				Error:  err.Error(),
 			})
 			return
