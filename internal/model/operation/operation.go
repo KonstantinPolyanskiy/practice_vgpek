@@ -38,7 +38,18 @@ const (
 )
 
 // Операции с авторизацией
-var (
+const (
 	RegistrationOperation = "регистрация пользователя"
 	LoginOperation        = "вход пользователя"
+)
+
+// Операции с пользователем
+const (
+	NewPersonOperation = "добавление пользователя"
+)
+
+// Операции с аккаунтом
+const (
+	NewAccountOperation = "создание нового аккаунта"
+	GetAccountOperation = "получение аккаунта по id"
 )
