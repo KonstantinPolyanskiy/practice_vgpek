@@ -8,7 +8,11 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 	"practice_vgpek/internal/model/account"
+	"practice_vgpek/internal/model/dberr"
+	"practice_vgpek/internal/model/operation"
 )
+
+var duplicateKeyCodeError = "23505"
 
 type Repository struct {
 	l  *zap.Logger
@@ -24,7 +28,7 @@ func NewAccountRepo(db *pgxpool.Pool, logger *zap.Logger) Repository {
 
 func (r Repository) SaveAccount(ctx context.Context, savingAcc account.DTO) (account.Entity, error) {
 	l := r.l.With(
-		zap.String("запрос к базе данных", "сохранение аккаунта"),
+		zap.String("операция", operation.NewAccountOperation),
 		zap.String("слой", "репозиторий"),
 	)
 
@@ -43,24 +47,18 @@ func (r Repository) SaveAccount(ctx context.Context, savingAcc account.DTO) (acc
 		"RegKeyId":     savingAcc.RegKeyId,
 	}
 
-	l.Info("данные для сохранения",
-		zap.String("логин", savingAcc.Login),
-		zap.Int("id роли", savingAcc.RoleId),
-		zap.Int("id ключа регистрации", savingAcc.RegKeyId),
-	)
-
 	// Если запрос не возвращает Id, то аккаунт не создан
 	err := r.db.QueryRow(ctx, insertAccQuery, args).Scan(&insertedAccId)
 	if err != nil {
-		l.Warn("ошибка сохранения данных", zap.Error(err))
+		l.Warn("ошибка выполнения запроса", zap.Error(err))
 
 		var pgErr *pgconn.PgError
 
 		if errors.Is(err, pgx.ErrNoRows) {
-			return account.Entity{}, ErrAccountNotFound
+			return account.Entity{}, dberr.ErrNotFound
 		} else if errors.As(err, &pgErr) {
 			if pgErr.Code == duplicateKeyCodeError {
-				return account.Entity{}, ErrLoginAlreadyExist
+				return account.Entity{}, dberr.ErrLoginAlreadyExist
 			}
 		}
 		return account.Entity{}, err
@@ -74,10 +72,10 @@ func (r Repository) SaveAccount(ctx context.Context, savingAcc account.DTO) (acc
 	row, err := r.db.Query(ctx, getAccQuery, insertedAccId)
 	defer row.Close()
 	if err != nil {
-		l.Warn("ошибка получения сохраненного аккаунта", zap.Error(err))
+		l.Warn("ошибка выполнения запроса", zap.Error(err))
 
 		if errors.Is(err, pgx.ErrNoRows) {
-			return account.Entity{}, ErrAccountNotFound
+			return account.Entity{}, dberr.ErrNotFound
 		}
 		return account.Entity{}, err
 	}
@@ -89,7 +87,6 @@ func (r Repository) SaveAccount(ctx context.Context, savingAcc account.DTO) (acc
 		return account.Entity{}, err
 	}
 
-	l.Info("данные успешно записаны", zap.Int("id аккаунта", savedAcc.AccountId))
 	return savedAcc, nil
 }
 
@@ -104,17 +101,10 @@ func (r Repository) AccountByLogin(ctx context.Context, login string) (account.E
 	row, err := r.db.Query(ctx, getAccountQuery, login)
 	defer row.Close()
 	if err != nil {
-		l.Warn("ошибка получения",
-			zap.String("login", login),
-			zap.Error(err),
-		)
-
-		if errors.Is(err, pgx.ErrTooManyRows) {
-			return account.Entity{}, ErrAccountNotFound
-		}
+		l.Warn("ошибка выполнения запроса", zap.Error(err))
 
 		if errors.Is(err, pgx.ErrNoRows) {
-			return account.Entity{}, ErrAccountNotFound
+			return account.Entity{}, dberr.ErrNotFound
 		}
 
 		return account.Entity{}, err
@@ -127,13 +117,12 @@ func (r Repository) AccountByLogin(ctx context.Context, login string) (account.E
 		return account.Entity{}, err
 	}
 
-	l.Info("аккаунт успешно получен", zap.Int("id аккаунта", acc.AccountId))
 	return acc, nil
 }
 
 func (r Repository) AccountById(ctx context.Context, id int) (account.Entity, error) {
 	l := r.l.With(
-		zap.String("запрос к базе данных", "получение аккаунта по id"),
+		zap.String("запрос к базе данных", operation.GetAccountOperation),
 		zap.String("слой", "репозиторий"),
 	)
 
@@ -142,13 +131,10 @@ func (r Repository) AccountById(ctx context.Context, id int) (account.Entity, er
 	row, err := r.db.Query(ctx, getAccountQuery, id)
 	defer row.Close()
 	if err != nil {
-		l.Warn("ошибка получения аккаунта",
-			zap.Int("id аккаунта", id),
-			zap.Error(err),
-		)
+		l.Warn("ошибка выполнения запроса", zap.Error(err))
 
 		if errors.Is(err, pgx.ErrNoRows) {
-			return account.Entity{}, ErrAccountNotFound
+			return account.Entity{}, dberr.ErrNotFound
 		}
 
 		return account.Entity{}, err
@@ -161,6 +147,5 @@ func (r Repository) AccountById(ctx context.Context, id int) (account.Entity, er
 		return account.Entity{}, err
 	}
 
-	l.Info("аккаунт успешно получен", zap.Int("id аккаунта", acc.AccountId))
 	return acc, nil
 }

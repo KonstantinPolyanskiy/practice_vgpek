@@ -7,6 +7,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
+	"practice_vgpek/internal/model/dberr"
+	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/person"
 )
 
@@ -24,8 +26,8 @@ func NewPersonRepo(db *pgxpool.Pool, logger *zap.Logger) Repository {
 
 func (r Repository) SavePerson(ctx context.Context, savingPerson person.DTO, accountId int) (person.Entity, error) {
 	l := r.l.With(
-		zap.String("action query", "save person"),
-		zap.String("layer", "repo"),
+		zap.String("операция", operation.NewPersonOperation),
+		zap.String("слой", "репозиторий"),
 	)
 
 	var insertedPersonUUID uuid.UUID
@@ -35,7 +37,6 @@ func (r Repository) SavePerson(ctx context.Context, savingPerson person.DTO, acc
 	VALUES (@PersonUUID, @AccountId, @FirstName, @MiddleName, @LastName)
 	RETURNING person_uuid
 `
-	l.Debug("insert person", zap.String("query", insertPersonQuery))
 
 	args := pgx.NamedArgs{
 		"PersonUUID": uuid.New(),
@@ -45,21 +46,11 @@ func (r Repository) SavePerson(ctx context.Context, savingPerson person.DTO, acc
 		"LastName":   savingPerson.LastName,
 	}
 
-	l.Debug("args in query",
-		zap.Int("account id", accountId),
-		zap.String("first name", savingPerson.FirstName),
-		zap.String("middle name", savingPerson.MiddleName),
-		zap.String("last name", savingPerson.LastName),
-	)
-
 	// Если запрос не возвращает Id, то пользователь не создан
 	err := r.db.QueryRow(ctx, insertPersonQuery, args).Scan(&insertedPersonUUID)
 	if err != nil {
-		l.Warn("error insert person", zap.Error(err))
+		l.Warn("ошибка выполнения запроса", zap.Error(err))
 
-		if errors.Is(err, pgx.ErrNoRows) {
-			return person.Entity{}, errors.New("сохраненный пользователь не найден")
-		}
 		return person.Entity{}, err
 	}
 
@@ -68,22 +59,20 @@ func (r Repository) SavePerson(ctx context.Context, savingPerson person.DTO, acc
 	WHERE person_uuid=$1
 `
 
-	l.Debug("get person", zap.String("query", getPersonQuery))
-
 	row, err := r.db.Query(ctx, getPersonQuery, insertedPersonUUID)
 	defer row.Close()
 	if err != nil {
-		l.Warn("error get inserted person", zap.Error(err))
+		l.Warn("ошибка выполнения запроса", zap.Error(err))
 
 		if errors.Is(err, pgx.ErrNoRows) {
-			return person.Entity{}, errors.New("сохраненный пользователь не найдет")
+			return person.Entity{}, dberr.ErrNotFound
 		}
 		return person.Entity{}, err
 	}
 
 	savedPerson, err := pgx.CollectOneRow(row, pgx.RowToStructByName[person.Entity])
 	if err != nil {
-		l.Warn("error collect person in struct", zap.Error(err))
+		l.Warn("ошибка записи данных в структуру", zap.Error(err))
 
 		return person.Entity{}, err
 	}
