@@ -7,13 +7,10 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
+	"practice_vgpek/internal/model/dberr"
+	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/params"
 	"practice_vgpek/internal/model/permissions"
-)
-
-var (
-	ManyObjectErr     = errors.New("неоднозначный результат")
-	ObjectNotFoundErr = errors.New("объект действия не найден")
 )
 
 type ObjectRepository struct {
@@ -30,8 +27,8 @@ func NewObjectRepo(db *pgxpool.Pool, logger *zap.Logger) ObjectRepository {
 
 func (or ObjectRepository) SaveObject(ctx context.Context, savingObject permissions.ObjectDTO) (permissions.ObjectEntity, error) {
 	l := or.l.With(
-		zap.String("executing query name", "save object"),
-		zap.String("layer", "repo"),
+		zap.String("операция", operation.AddObjectOperation),
+		zap.String("слой", "репозиторий"),
 	)
 
 	var insertedObjectId int
@@ -42,21 +39,17 @@ func (or ObjectRepository) SaveObject(ctx context.Context, savingObject permissi
 	RETURNING internal_object_id
 `
 
-	l.Debug("insert object", zap.String("query", insertedObjectQuery))
-
 	args := pgx.NamedArgs{
 		"ObjectName": savingObject.Name,
 	}
 
-	l.Debug("args in insert object query", zap.Any("name object", args["ObjectName"]))
-
 	// Вставляем объект в БД
 	err := or.db.QueryRow(ctx, insertedObjectQuery, args).Scan(&insertedObjectId)
 	if err != nil {
-		l.Warn("error insert action", zap.Error(err))
+		l.Warn("ошибка выполнения запроса", zap.Error(err))
 
 		if errors.Is(err, pgx.ErrNoRows) {
-			return permissions.ObjectEntity{}, errors.New("сохраненный объект не найден")
+			return permissions.ObjectEntity{}, dberr.ErrNotFound
 		}
 		return permissions.ObjectEntity{}, err
 	}
@@ -65,22 +58,20 @@ func (or ObjectRepository) SaveObject(ctx context.Context, savingObject permissi
 	SELECT * FROM internal_object WHERE internal_object_id=$1
 `
 
-	l.Debug("get inserted object", zap.String("query", getObjectQuery))
-
 	row, err := or.db.Query(ctx, getObjectQuery, insertedObjectId)
 	defer row.Close()
 	if err != nil {
-		l.Warn("error get inserted object", zap.Error(err))
+		l.Warn("ошибка выполениня запроса", zap.Error(err))
 
 		if errors.Is(err, pgx.ErrNoRows) {
-			return permissions.ObjectEntity{}, errors.New("сохраненный объект не найден")
+			return permissions.ObjectEntity{}, dberr.ErrNotFound
 		}
 		return permissions.ObjectEntity{}, err
 	}
 
 	savedObject, err := pgx.CollectOneRow(row, pgx.RowToStructByName[permissions.ObjectEntity])
 	if err != nil {
-		l.Warn("error collect object in struct", zap.Error(err))
+		l.Warn("ошибка записи данных в структуру", zap.Error(err))
 
 		return permissions.ObjectEntity{}, err
 	}
@@ -90,8 +81,8 @@ func (or ObjectRepository) SaveObject(ctx context.Context, savingObject permissi
 
 func (or ObjectRepository) ObjectById(ctx context.Context, id int) (permissions.ObjectEntity, error) {
 	l := or.l.With(
-		zap.String("executing query name", "get object by id"),
-		zap.String("layer", "repo"),
+		zap.String("операция", operation.GetObjectOperation),
+		zap.String("слой", "репозиторий"),
 	)
 
 	getObjectQuery := `SELECT * FROM internal_object WHERE internal_object.internal_object_id=$1`
@@ -99,20 +90,20 @@ func (or ObjectRepository) ObjectById(ctx context.Context, id int) (permissions.
 	row, err := or.db.Query(ctx, getObjectQuery, id)
 	defer row.Close()
 	if err != nil {
-		l.Warn("error get object", zap.Error(err))
+		l.Warn("ошибка выполнения запроса", zap.Error(err))
 
 		if errors.Is(err, pgx.ErrNoRows) {
-			return permissions.ObjectEntity{}, ActionNotFoundErr
+			return permissions.ObjectEntity{}, dberr.ErrNotFound
 		}
 
-		return permissions.ObjectEntity{}, errors.New("unknown error")
+		return permissions.ObjectEntity{}, err
 	}
 
 	object, err := pgx.CollectOneRow(row, pgx.RowToStructByName[permissions.ObjectEntity])
 	if err != nil {
-		l.Warn("error collect object to struct", zap.Error(err))
+		l.Warn("ошибка записи данных в структуру", zap.Error(err))
 
-		return permissions.ObjectEntity{}, errors.New("unknown error")
+		return permissions.ObjectEntity{}, err
 	}
 
 	return object, nil
@@ -120,8 +111,8 @@ func (or ObjectRepository) ObjectById(ctx context.Context, id int) (permissions.
 
 func (or ObjectRepository) ObjectsByParams(ctx context.Context, params params.Default) ([]permissions.ObjectEntity, error) {
 	l := or.l.With(
-		zap.String("operation", "get objects by params"),
-		zap.String("layer", "repo"),
+		zap.String("операция", operation.GetObjectsOperation),
+		zap.String("слой", "репозиторий"),
 	)
 
 	getObjectsQuery := squirrel.Select("*").From("internal_object").
@@ -131,7 +122,7 @@ func (or ObjectRepository) ObjectsByParams(ctx context.Context, params params.De
 
 	q, args, err := getObjectsQuery.ToSql()
 	if err != nil {
-		l.Warn("error build sql", zap.Error(err))
+		l.Warn("ошибка подготовки запроса", zap.Error(err))
 
 		return nil, err
 	}
@@ -139,14 +130,14 @@ func (or ObjectRepository) ObjectsByParams(ctx context.Context, params params.De
 	row, err := or.db.Query(ctx, q, args...)
 	defer row.Close()
 	if err != nil {
-		l.Warn("error get objects by params", zap.Error(err))
+		l.Warn("ошибка выполнения запроса", zap.Error(err))
 
 		return nil, err
 	}
 
 	objects, err := pgx.CollectRows(row, pgx.RowToStructByName[permissions.ObjectEntity])
 	if err != nil {
-		l.Warn("error collect objects to struct", zap.Error(err))
+		l.Warn("ошибка записи данных в структуру", zap.Error(err))
 
 		return nil, err
 	}

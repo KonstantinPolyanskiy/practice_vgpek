@@ -7,10 +7,10 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"go.uber.org/zap"
 	"practice_vgpek/internal/model/account"
+	"practice_vgpek/internal/model/dberr"
 	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/person"
 	"practice_vgpek/internal/model/registration_key"
-	accountRepo "practice_vgpek/internal/repository/account"
 	"practice_vgpek/pkg/password"
 	"time"
 )
@@ -144,7 +144,7 @@ func (s Service) NewPerson(ctx context.Context, registering person.RegistrationR
 				zap.Int("id ключа регистрации", dto.Account.RegKeyId),
 			)
 
-			if errors.Is(err, accountRepo.ErrLoginAlreadyExist) {
+			if errors.Is(err, dberr.ErrLoginAlreadyExist) {
 				errMsg = "Введенный логин уже занят"
 			}
 
@@ -218,7 +218,7 @@ func (s Service) NewToken(ctx context.Context, logIn person.LogInReq) (person.Lo
 
 			l.Warn("ошибка получения аккаунта", zap.String("логин аккаунта", logIn.Login))
 
-			if errors.Is(err, accountRepo.ErrAccountNotFound) {
+			if errors.Is(err, dberr.ErrNotFound) {
 				errMsg = "Аккаунт не найден"
 			}
 

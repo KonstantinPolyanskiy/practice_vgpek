@@ -20,6 +20,7 @@ const (
 // Операции с доступами
 const (
 	AddPermissionOperation    = "добавление права действия в системе"
+	GetPermissionOperation    = "получение доступов у роли"
 	DeletePermissionOperation = "удаление права действия в системе"
 )
 
@@ -35,6 +36,7 @@ const (
 	AddActionOperation  = "добавление права действия в системе"
 	GetActionOperation  = "получение права действия по id"
 	GetActionsOperation = "получение прав действий по параметрам"
+	GetActi
 )
 
 // Операции с авторизацией
