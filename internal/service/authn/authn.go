@@ -207,7 +207,7 @@ func (s Service) NewToken(ctx context.Context, logIn person.LogInReq) (person.Lo
 	resCh := make(chan LogInResult)
 
 	l := s.l.With(
-		zap.String("операция", LoginOperation),
+		zap.String("операция", operation.LoginOperation),
 		zap.String("слой", "сервисы"),
 	)
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"go.uber.org/zap"
+	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/params"
 	"practice_vgpek/internal/model/permissions"
 )
@@ -33,15 +34,16 @@ func (s RBACService) NewRole(ctx context.Context, addingRole permissions.AddRole
 	resCh := make(chan AddedRoleResult)
 
 	l := s.l.With(
-		zap.String("action", AddRoleOperation),
-		zap.String("layer", "services"),
+		zap.String("операция", operation.AddRoleOperation),
+		zap.String("слой", "сервисы"),
 	)
 
 	go func() {
 		// Проверяем что роль вообще введена
 		if addingRole.Name == "" {
-			l.Warn("empty adding role")
-			sendAddRoleResult(resCh, permissions.AddRoleResp{}, "пустое название роли")
+			l.Warn("пустая роль для добавления")
+
+			sendAddRoleResult(resCh, permissions.AddRoleResp{}, "Пустая роль для добавления")
 			return
 		}
 
@@ -51,12 +53,9 @@ func (s RBACService) NewRole(ctx context.Context, addingRole permissions.AddRole
 
 		added, err := s.rr.SaveRole(ctx, dto)
 		if err != nil {
-			l.Warn("error save role in db", zap.String("role name", addingRole.Name))
-			sendAddRoleResult(resCh, permissions.AddRoleResp{}, "неизвестная ошибка сохранения роли")
+			sendAddRoleResult(resCh, permissions.AddRoleResp{}, "Неизвестная ошибка сохранения роли")
 			return
 		}
-
-		l.Info("role successfully save", zap.String("role name", added.Name))
 
 		resp := permissions.AddRoleResp{
 			Name: added.Name,
@@ -80,8 +79,8 @@ func (s RBACService) RoleById(ctx context.Context, id int) (permissions.RoleEnti
 	resCh := make(chan GetRoleResult)
 
 	l := s.l.With(
-		zap.String("operation", GetRoleOperation),
-		zap.String("layer", "services"),
+		zap.String("операция", operation.GetRoleOperation),
+		zap.String("слой", "сервисы"),
 	)
 
 	go func() {
@@ -89,20 +88,20 @@ func (s RBACService) RoleById(ctx context.Context, id int) (permissions.RoleEnti
 
 		hasAccess, err := s.accountMediator.HasAccess(ctx, accountId, ObjectName, GetActionName)
 		if err != nil {
-			l.Warn("error check access", zap.Error(err))
+			l.Warn("ошибка проверки доступа", zap.Error(err))
 
-			sendGetRoleResult(resCh, permissions.RoleEntity{}, ErrCheckAccess.Error())
+			sendGetRoleResult(resCh, permissions.RoleEntity{}, permissions.ErrCheckAccess.Error())
 			return
 		}
 
 		if !hasAccess {
-			sendGetRoleResult(resCh, permissions.RoleEntity{}, ErrDontHavePermission.Error())
+			sendGetRoleResult(resCh, permissions.RoleEntity{}, permissions.ErrDontHavePerm.Error())
 			return
 		}
 
 		role, err := s.rr.RoleById(ctx, id)
 		if err != nil {
-			sendGetRoleResult(resCh, permissions.RoleEntity{}, "ошибка получения роли")
+			sendGetRoleResult(resCh, permissions.RoleEntity{}, "Ошибка получения роли")
 			return
 		}
 
@@ -124,8 +123,8 @@ func (s RBACService) RolesByParams(ctx context.Context, params params.Default) (
 	resCh := make(chan GetRolesResult)
 
 	l := s.l.With(
-		zap.String("operation", GetRoleOperation),
-		zap.String("layer", "services"),
+		zap.String("операция", operation.GetRoleOperation),
+		zap.String("слой", "сервисы"),
 	)
 
 	go func() {
@@ -133,20 +132,20 @@ func (s RBACService) RolesByParams(ctx context.Context, params params.Default) (
 
 		hasAccess, err := s.accountMediator.HasAccess(ctx, accountId, ObjectName, GetActionName)
 		if err != nil {
-			l.Warn("error check access", zap.Error(err))
+			l.Warn("ошибка проверки доступа", zap.Error(err))
 
-			sendGetRolesResult(resCh, nil, ErrCheckAccess.Error())
+			sendGetRolesResult(resCh, nil, permissions.ErrCheckAccess.Error())
 			return
 		}
 
 		if !hasAccess {
-			sendGetRolesResult(resCh, nil, ErrDontHavePermission.Error())
+			sendGetRolesResult(resCh, nil, permissions.ErrDontHavePerm.Error())
 			return
 		}
 
 		roles, err := s.rr.RolesByParams(ctx, params)
 		if err != nil {
-			sendGetRolesResult(resCh, nil, "ошибка получения ролей")
+			sendGetRolesResult(resCh, nil, "Ошибка получения ролей")
 			return
 		}
 

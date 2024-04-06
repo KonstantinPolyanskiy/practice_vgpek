@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"go.uber.org/zap"
+	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/params"
 	"practice_vgpek/internal/model/permissions"
 )
@@ -33,15 +34,16 @@ func (s RBACService) NewObject(ctx context.Context, addingObject permissions.Add
 	resCh := make(chan AddedObjectResult)
 
 	l := s.l.With(
-		zap.String("action", AddObjectOperation),
-		zap.String("layer", "services"),
+		zap.String("оперция", operation.AddObjectOperation),
+		zap.String("слой", "сервисы"),
 	)
 
 	go func() {
 		// Проверяем что объект вообще введен
 		if addingObject.Name == "" {
-			l.Warn("empty adding object")
-			sendAddObjectResult(resCh, permissions.AddObjectResp{}, "пустое имя объекта")
+			l.Warn("Пустой добавляемый объект")
+
+			sendAddObjectResult(resCh, permissions.AddObjectResp{}, "Пустой добавляемый объект")
 			return
 		}
 
@@ -51,12 +53,9 @@ func (s RBACService) NewObject(ctx context.Context, addingObject permissions.Add
 
 		added, err := s.or.SaveObject(ctx, dto)
 		if err != nil {
-			l.Warn("error save object in db", zap.String("object name", addingObject.Name))
-			sendAddObjectResult(resCh, permissions.AddObjectResp{}, "неизвестная ошибка сохранения объекта действия")
+			sendAddObjectResult(resCh, permissions.AddObjectResp{}, "Неизвестная ошибка сохранения объекта действия")
 			return
 		}
-
-		l.Info("object successfully save", zap.String("object name", added.Name))
 
 		resp := permissions.AddObjectResp{
 			Name: added.Name,
@@ -80,7 +79,7 @@ func (s RBACService) ObjectById(ctx context.Context, id int) (permissions.Object
 	resCh := make(chan GetObjectResult)
 
 	l := s.l.With(
-		zap.String("operation", GetObjectOperation),
+		zap.String("операция", operation.GetObjectOperation),
 		zap.String("layer", "services"),
 	)
 
@@ -89,20 +88,20 @@ func (s RBACService) ObjectById(ctx context.Context, id int) (permissions.Object
 
 		hasAccess, err := s.accountMediator.HasAccess(ctx, accountId, ObjectName, GetActionName)
 		if err != nil {
-			l.Warn("error check access", zap.Error(err))
+			l.Warn("Ошибка проверки доступа", zap.Error(err))
 
-			sendGetObjectResult(resCh, permissions.ObjectEntity{}, ErrCheckAccess.Error())
+			sendGetObjectResult(resCh, permissions.ObjectEntity{}, permissions.ErrCheckAccess.Error())
 			return
 		}
 
 		if !hasAccess {
-			sendGetObjectResult(resCh, permissions.ObjectEntity{}, ErrDontHavePermission.Error())
+			sendGetObjectResult(resCh, permissions.ObjectEntity{}, permissions.ErrDontHavePerm.Error())
 			return
 		}
 
 		object, err := s.or.ObjectById(ctx, id)
 		if err != nil {
-			sendGetObjectResult(resCh, permissions.ObjectEntity{}, "ошибка получения объекта")
+			sendGetObjectResult(resCh, permissions.ObjectEntity{}, "Неизвестная ошибка получения объекта")
 			return
 		}
 
@@ -124,8 +123,8 @@ func (s RBACService) ObjectsByParams(ctx context.Context, params params.Default)
 	resCh := make(chan GetObjectsResult)
 
 	l := s.l.With(
-		zap.String("operation", GetObjectsOperation),
-		zap.String("layer", "services"),
+		zap.String("операция", operation.GetObjectsOperation),
+		zap.String("слой", "сервисы"),
 	)
 
 	go func() {
@@ -133,14 +132,14 @@ func (s RBACService) ObjectsByParams(ctx context.Context, params params.Default)
 
 		hasAccess, err := s.accountMediator.HasAccess(ctx, accountId, ObjectName, GetActionName)
 		if err != nil {
-			l.Warn("error check access", zap.Error(err))
+			l.Warn("ошибка проверки доступа", zap.Error(err))
 
-			sendGetObjectsResult(resCh, nil, ErrCheckAccess.Error())
+			sendGetObjectsResult(resCh, nil, permissions.ErrCheckAccess.Error())
 			return
 		}
 
 		if !hasAccess {
-			sendGetObjectsResult(resCh, nil, ErrDontHavePermission.Error())
+			sendGetObjectsResult(resCh, nil, permissions.ErrDontHavePerm.Error())
 			return
 		}
 

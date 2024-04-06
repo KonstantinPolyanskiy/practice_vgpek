@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"go.uber.org/zap"
+	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/params"
 	"practice_vgpek/internal/model/permissions"
 )
@@ -33,15 +34,16 @@ func (s RBACService) NewAction(ctx context.Context, addingAction permissions.Add
 	resCh := make(chan AddedActionResult)
 
 	l := s.l.With(
-		zap.String("action", AddActionOperation),
-		zap.String("layer", "services"),
+		zap.String("операция", operation.AddActionOperation),
+		zap.String("слой", "сервисы"),
 	)
 
 	go func() {
 		// Проверяем что действие - не пустая строка
 		if addingAction.Name == "" {
-			l.Warn("empty adding action")
-			sendAddActionResult(resCh, permissions.AddActionResp{}, "пустая добавляемая роль")
+			l.Warn("попытка добавить пустое действие")
+
+			sendAddActionResult(resCh, permissions.AddActionResp{}, "Пустое добавляемое действие")
 			return
 		}
 
@@ -53,12 +55,9 @@ func (s RBACService) NewAction(ctx context.Context, addingAction permissions.Add
 		// Сохраняем действие в БД
 		added, err := s.ar.SaveAction(ctx, dto)
 		if err != nil {
-			l.Warn("error save action in db", zap.String("action name", dto.Name))
-			sendAddActionResult(resCh, permissions.AddActionResp{}, "неизвестная ошибка сохранения действия")
+			sendAddActionResult(resCh, permissions.AddActionResp{}, "Неизвестная ошибка сохранения действия")
 			return
 		}
-
-		l.Info("action successfully save", zap.String("action name", added.Name))
 
 		// Формируем ответ
 		resp := permissions.AddActionResp{
@@ -84,8 +83,8 @@ func (s RBACService) ActionById(ctx context.Context, req permissions.GetActionRe
 	resCh := make(chan GetActionResult)
 
 	l := s.l.With(
-		zap.String("operation", GetActionOperation),
-		zap.String("layer", "services"),
+		zap.String("операция", operation.GetActionOperation),
+		zap.String("слой", "сервисы"),
 	)
 
 	go func() {
@@ -93,20 +92,20 @@ func (s RBACService) ActionById(ctx context.Context, req permissions.GetActionRe
 
 		hasAccess, err := s.accountMediator.HasAccess(ctx, accountId, ObjectName, GetActionName)
 		if err != nil {
-			l.Warn("error check access", zap.Error(err))
+			l.Warn("ошибка проверки доступа", zap.Error(err))
 
-			sendGetActionResult(resCh, permissions.ActionEntity{}, ErrCheckAccess.Error())
+			sendGetActionResult(resCh, permissions.ActionEntity{}, permissions.ErrCheckAccess.Error())
 			return
 		}
 
 		if !hasAccess {
-			sendGetActionResult(resCh, permissions.ActionEntity{}, ErrDontHavePermission.Error())
+			sendGetActionResult(resCh, permissions.ActionEntity{}, permissions.ErrDontHavePerm.Error())
 			return
 		}
 
 		action, err := s.ar.ActionById(ctx, req.Id)
 		if err != nil {
-			sendGetActionResult(resCh, permissions.ActionEntity{}, "ошибка получения действия")
+			sendGetActionResult(resCh, permissions.ActionEntity{}, "Ошибка получения действия")
 			return
 		}
 
@@ -129,8 +128,8 @@ func (s RBACService) ActionsByParams(ctx context.Context, params params.Default)
 	resCh := make(chan GetActionsResult)
 
 	l := s.l.With(
-		zap.String("operation", GetActionsOperation),
-		zap.String("layer", "services"),
+		zap.String("операция", operation.GetActionsOperation),
+		zap.String("слой", "сервисы"),
 	)
 
 	go func() {
@@ -138,14 +137,14 @@ func (s RBACService) ActionsByParams(ctx context.Context, params params.Default)
 
 		hasAccess, err := s.accountMediator.HasAccess(ctx, accountId, ObjectName, GetActionName)
 		if err != nil {
-			l.Warn("error check access", zap.Error(err))
+			l.Warn("ошибка проверки доступа", zap.Error(err))
 
-			sendGetActionsResult(resCh, nil, ErrCheckAccess.Error())
+			sendGetActionsResult(resCh, nil, permissions.ErrCheckAccess.Error())
 			return
 		}
 
 		if !hasAccess {
-			sendGetActionsResult(resCh, nil, ErrDontHavePermission.Error())
+			sendGetActionsResult(resCh, nil, permissions.ErrDontHavePerm.Error())
 			return
 		}
 

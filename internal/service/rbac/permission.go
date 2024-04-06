@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"go.uber.org/zap"
+	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/permissions"
 )
 
@@ -20,20 +21,21 @@ func (s RBACService) NewPermission(ctx context.Context, addingPerm permissions.A
 	resCh := make(chan AddedPermissionResult)
 
 	l := s.l.With(
-		zap.String("action", AddPermissionOperation),
-		zap.String("layer", "services"),
+		zap.String("операция", operation.AddPermissionOperation),
+		zap.String("слой", "сервисы"),
 	)
 
 	go func() {
 		if len(addingPerm.ActionsId) == 0 {
-			l.Warn("пустая роль для добавления")
+			l.Warn("нет действий для добавления")
+
 			sendAddPermissionResult(resCh, permissions.AddPermResp{}, "нет действий для добавления")
 			return
 		}
 
 		err := s.pr.SavePermission(ctx, addingPerm.RoleId, addingPerm.ObjectId, addingPerm.ActionsId)
 		if err != nil {
-			sendAddPermissionResult(resCh, permissions.AddPermResp{}, "ошибка добавления доступов")
+			sendAddPermissionResult(resCh, permissions.AddPermResp{}, "Неизвестная ошибка добавления доступов")
 			return
 		}
 
