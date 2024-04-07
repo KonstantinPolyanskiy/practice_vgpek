@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"go.uber.org/zap"
+	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/permissions"
 	"practice_vgpek/internal/model/registration_key"
 )
@@ -21,8 +22,8 @@ func (s Service) InvalidateKey(ctx context.Context, deletingKey registration_key
 	resCh := make(chan InvalidateKeyResult)
 
 	l := s.l.With(
-		zap.String("операция", InvalidateKeyOperation),
-		zap.String("слой", "services"),
+		zap.String("операция", operation.InvalidateKeyOperation),
+		zap.String("слой", "сервисы"),
 	)
 
 	go func() {
