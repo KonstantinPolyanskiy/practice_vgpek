@@ -18,6 +18,10 @@ import (
 	"time"
 )
 
+// @title Swagger example API
+// @version 1.0
+// @description This is a sample example
+// @termsOfService http://swagger.io/terms
 func main() {
 	mainCtx, cancel := context.WithCancel(context.Background())
 
