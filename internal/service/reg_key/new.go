@@ -55,6 +55,10 @@ func (s Service) NewKey(ctx context.Context, req registration_key.AddReq) (regis
 			return
 		}
 
+		if req.GroupName == "" {
+			req.GroupName = "unknown"
+		}
+
 		// Формируем DTO
 		dto := registration_key.DTO{
 			RoleId:         req.RoleId,
