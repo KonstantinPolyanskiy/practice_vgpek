@@ -71,7 +71,7 @@ func (r Repository) SaveKey(ctx context.Context, key registration_key.DTO) (regi
 
 	savedKey, err := pgx.CollectOneRow(row, pgx.RowToStructByName[registration_key.Entity])
 	if err != nil {
-		l.Warn("ошибка выполнения запроса", zap.Error(err))
+		l.Warn("ошибка записи данных в структуру", zap.Error(err))
 
 		return registration_key.Entity{}, err
 	}
