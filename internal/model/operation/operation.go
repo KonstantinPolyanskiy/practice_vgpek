@@ -55,3 +55,8 @@ const (
 	NewAccountOperation = "создание нового аккаунта"
 	GetAccountOperation = "получение аккаунта по id"
 )
+
+// Операции с практическими заданиями
+const (
+	UploadIssuedPracticeOperation = "добавление практического задания"
+)

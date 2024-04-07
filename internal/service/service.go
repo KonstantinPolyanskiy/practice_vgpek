@@ -7,9 +7,11 @@ import (
 	"practice_vgpek/internal/model/params"
 	"practice_vgpek/internal/model/permissions"
 	"practice_vgpek/internal/model/person"
+	"practice_vgpek/internal/model/practice/issued"
 	"practice_vgpek/internal/model/registration_key"
 	"practice_vgpek/internal/repository"
 	"practice_vgpek/internal/service/authn"
+	"practice_vgpek/internal/service/issued_practice"
 	"practice_vgpek/internal/service/rbac"
 	"practice_vgpek/internal/service/reg_key"
 )
@@ -43,18 +45,24 @@ type KeyService interface {
 	KeysByParams(ctx context.Context, keyParams params.Key) ([]registration_key.Entity, error)
 }
 
+type IssuedPracticeService interface {
+	Save(ctx context.Context, req issued.UploadReq) (issued.UploadResp, error)
+}
+
 type Service struct {
 	AuthnService
 	KeyService
 	RBACService
+	IssuedPracticeService
 }
 
 func New(repository repository.Repository, logger *zap.Logger) Service {
 	am := account.NewAccountMediator(repository.AccountRepo, repository.KeyRepo, repository.RoleRepo, repository.PermissionRepo)
 
 	return Service{
-		AuthnService: authn.NewAuthenticationService(repository.PersonRepo, repository.AccountRepo, repository.KeyRepo, logger),
-		KeyService:   reg_key.NewKeyService(repository.KeyRepo, logger, am),
-		RBACService:  rbac.NewRBACService(repository.ActionRepo, repository.ObjectRepo, repository.RoleRepo, repository.PermissionRepo, am, logger),
+		AuthnService:          authn.NewAuthenticationService(repository.PersonRepo, repository.AccountRepo, repository.KeyRepo, logger),
+		KeyService:            reg_key.NewKeyService(repository.KeyRepo, logger, am),
+		RBACService:           rbac.NewRBACService(repository.ActionRepo, repository.ObjectRepo, repository.RoleRepo, repository.PermissionRepo, am, logger),
+		IssuedPracticeService: issued_practice.NewIssuedPracticeService(nil, nil, am, logger),
 	}
 }

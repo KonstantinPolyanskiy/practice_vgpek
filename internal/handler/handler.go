@@ -41,11 +41,16 @@ type RBACHandler interface {
 	GetRoles(w http.ResponseWriter, r *http.Request)
 }
 
+type IssuedPracticeHandler interface {
+	Upload(w http.ResponseWriter, r *http.Request)
+}
+
 type Handler struct {
 	l *zap.Logger
 	AuthnHandler
 	KeyHandler
 	RBACHandler
+	IssuedPracticeHandler
 }
 
 func New(service service.Service, logger *zap.Logger) Handler {
@@ -106,6 +111,12 @@ func (h Handler) Init() *chi.Mux {
 
 	r.Route("/permissions", func(r chi.Router) {
 		r.Post("/", h.RBACHandler.AddPermission)
+	})
+
+	r.Route("/practice", func(r chi.Router) {
+		r.Route("/issued", func(r chi.Router) {
+			r.Post("/", h.IssuedPracticeHandler.Upload)
+		})
 	})
 
 	return r
