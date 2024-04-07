@@ -39,15 +39,8 @@ func (s Service) NewKey(ctx context.Context, req registration_key.AddReq) (regis
 		// Получаем ID аккаунта
 		accountId := ctx.Value("AccountId").(int)
 
-		// Получаем роль по id аккаунта
-		role, err := s.accountMediator.RoleByAccountId(ctx, accountId)
-		if err != nil {
-			sendNewKeyResult(resCh, registration_key.AddResp{}, err.Error())
-			return
-		}
-
 		// Проверяем, есть ли доступ
-		hasAccess, err := s.accountMediator.HasAccess(ctx, role.Id, ObjectName, AddActionName)
+		hasAccess, err := s.accountMediator.HasAccess(ctx, accountId, ObjectName, AddActionName)
 		if err != nil || !hasAccess {
 			l.Warn("возникла ошибка при проверке прав", zap.Error(err))
 
