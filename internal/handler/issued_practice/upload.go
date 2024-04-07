@@ -30,7 +30,7 @@ func NewIssuedPracticeHandler(service IssuedPracticeService, logger *zap.Logger)
 }
 
 func (h Handler) Upload(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 10000*time.Second)
 	defer cancel()
 
 	l := h.l.With(
@@ -75,6 +75,7 @@ func (h Handler) Upload(w http.ResponseWriter, r *http.Request) {
 		zap.String("тема", req.Theme),
 		zap.Strings("целевые группы", req.TargetGroups),
 	)
+
 	resp, err := h.s.Save(ctx, req)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {

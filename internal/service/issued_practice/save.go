@@ -7,6 +7,8 @@ import (
 	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/permissions"
 	"practice_vgpek/internal/model/practice/issued"
+	"practice_vgpek/pkg/rndutils"
+	"strings"
 	"time"
 )
 
@@ -39,8 +41,12 @@ func (s Service) Save(ctx context.Context, req issued.UploadReq) (issued.UploadR
 			return
 		}
 
-		savedPath, err := s.fs.SaveFile(req.File, "/issued/", ".docx", "test")
-		if err != nil || !hasAccess {
+		// Формируем название, добавляем в конце набор случайных символов для уникальности
+		name := fmt.Sprintf("%s_%s", req.Title, rndutils.RandString(5))
+		name = strings.Replace(name, " ", "_", -1)
+
+		savedPath, err := s.fs.SaveFile(ctx, req.File, "issued", ".docx", name)
+		if err != nil {
 			l.Warn("возникла ошибка при сохрании файла", zap.Error(err))
 
 			sendUploadPracticeResult(resCh, issued.UploadResp{}, "Не удалось сохранить файл")
@@ -55,10 +61,25 @@ func (s Service) Save(ctx context.Context, req issued.UploadReq) (issued.UploadR
 			Major:        req.Major,
 			Path:         savedPath,
 			UploadAt:     time.Now(),
-			DeletedAt:    nil,
+			DeletedAt:    &time.Time{},
 		}
 
-		savedPracticeData, err := s.r.Save
+		savedPracticeData, err := s.r.Save(ctx, dto)
+		if err != nil {
+			sendUploadPracticeResult(resCh, issued.UploadResp{}, "Не удалось сохранить практическое задание")
+			return
+
+		}
+
+		resp := issued.UploadResp{
+			PracticeId:   savedPracticeData.PracticeId,
+			Title:        savedPracticeData.Title,
+			TargetGroups: savedPracticeData.TargetGroups,
+			UploadAt:     savedPracticeData.UploadAt,
+		}
+
+		sendUploadPracticeResult(resCh, resp, "")
+		return
 	}()
 
 	for {

@@ -5,6 +5,7 @@ import (
 	"go.uber.org/zap"
 	"net/http"
 	"practice_vgpek/internal/handler/authn"
+	"practice_vgpek/internal/handler/issued_practice"
 	"practice_vgpek/internal/handler/rbac"
 	"practice_vgpek/internal/handler/reg_key"
 	"practice_vgpek/internal/service"
@@ -55,10 +56,11 @@ type Handler struct {
 
 func New(service service.Service, logger *zap.Logger) Handler {
 	return Handler{
-		l:            logger,
-		AuthnHandler: authn.NewAuthenticationHandler(service.AuthnService, logger),
-		KeyHandler:   reg_key.NewRegKeyHandler(service.KeyService, logger),
-		RBACHandler:  rbac.NewAccessHandler(service.RBACService, logger),
+		l:                     logger,
+		AuthnHandler:          authn.NewAuthenticationHandler(service.AuthnService, logger),
+		KeyHandler:            reg_key.NewRegKeyHandler(service.KeyService, logger),
+		RBACHandler:           rbac.NewAccessHandler(service.RBACService, logger),
+		IssuedPracticeHandler: issued_practice.NewIssuedPracticeHandler(service.IssuedPracticeService, logger),
 	}
 }
 
@@ -115,6 +117,8 @@ func (h Handler) Init() *chi.Mux {
 
 	r.Route("/practice", func(r chi.Router) {
 		r.Route("/issued", func(r chi.Router) {
+			r.Use(h.AuthnHandler.Identity)
+
 			r.Post("/", h.IssuedPracticeHandler.Upload)
 		})
 	})

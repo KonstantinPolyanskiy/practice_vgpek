@@ -8,7 +8,7 @@ import (
 )
 
 type IssuedPracticeRepository interface {
-	Save(ctx context.Context, dto issued.DTO) (issued.)
+	Save(ctx context.Context, dto issued.DTO) (issued.Entity, error)
 }
 
 type IssuedPracticeFileStorage interface {

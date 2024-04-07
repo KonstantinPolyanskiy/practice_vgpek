@@ -14,6 +14,7 @@ import (
 	"practice_vgpek/internal/service/issued_practice"
 	"practice_vgpek/internal/service/rbac"
 	"practice_vgpek/internal/service/reg_key"
+	"practice_vgpek/internal/storage"
 )
 
 type AuthnService interface {
@@ -58,11 +59,12 @@ type Service struct {
 
 func New(repository repository.Repository, logger *zap.Logger) Service {
 	am := account.NewAccountMediator(repository.AccountRepo, repository.KeyRepo, repository.RoleRepo, repository.PermissionRepo)
+	fileStorage := storage.NewFileStorage()
 
 	return Service{
 		AuthnService:          authn.NewAuthenticationService(repository.PersonRepo, repository.AccountRepo, repository.KeyRepo, logger),
 		KeyService:            reg_key.NewKeyService(repository.KeyRepo, logger, am),
 		RBACService:           rbac.NewRBACService(repository.ActionRepo, repository.ObjectRepo, repository.RoleRepo, repository.PermissionRepo, am, logger),
-		IssuedPracticeService: issued_practice.NewIssuedPracticeService(nil, nil, am, logger),
+		IssuedPracticeService: issued_practice.NewIssuedPracticeService(repository.IssuedPracticeRepo, fileStorage, am, logger),
 	}
 }

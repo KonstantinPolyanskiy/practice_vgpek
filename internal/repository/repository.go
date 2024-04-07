@@ -8,8 +8,10 @@ import (
 	"practice_vgpek/internal/model/params"
 	"practice_vgpek/internal/model/permissions"
 	"practice_vgpek/internal/model/person"
+	"practice_vgpek/internal/model/practice/issued"
 	"practice_vgpek/internal/model/registration_key"
 	ar "practice_vgpek/internal/repository/account"
+	"practice_vgpek/internal/repository/issued_practice"
 	pr "practice_vgpek/internal/repository/person"
 	"practice_vgpek/internal/repository/rbac"
 	kr "practice_vgpek/internal/repository/reg_key"
@@ -17,6 +19,10 @@ import (
 
 type PersonRepo interface {
 	SavePerson(ctx context.Context, savingPerson person.DTO, accountId int) (person.Entity, error)
+}
+
+type IssuedPracticeRepo interface {
+	Save(ctx context.Context, dto issued.DTO) (issued.Entity, error)
 }
 
 type PermissionRepo interface {
@@ -65,22 +71,27 @@ type Repository struct {
 	l  *zap.Logger
 	db *pgxpool.Pool
 	PersonRepo
-	KeyRepo
 	AccountRepo
+
+	KeyRepo
+
 	ActionRepo
 	ObjectRepo
 	RoleRepo
 	PermissionRepo
+
+	IssuedPracticeRepo
 }
 
 func New(db *pgxpool.Pool, logger *zap.Logger) Repository {
 	return Repository{
-		PersonRepo:     pr.NewPersonRepo(db, logger),
-		KeyRepo:        kr.NewKeyRepo(db, logger),
-		AccountRepo:    ar.NewAccountRepo(db, logger),
-		ActionRepo:     rbac.NewActionRepo(db, logger),
-		ObjectRepo:     rbac.NewObjectRepo(db, logger),
-		RoleRepo:       rbac.NewRoleRepo(db, logger),
-		PermissionRepo: rbac.NewPermissionRepository(db, logger),
+		PersonRepo:         pr.NewPersonRepo(db, logger),
+		KeyRepo:            kr.NewKeyRepo(db, logger),
+		AccountRepo:        ar.NewAccountRepo(db, logger),
+		ActionRepo:         rbac.NewActionRepo(db, logger),
+		ObjectRepo:         rbac.NewObjectRepo(db, logger),
+		RoleRepo:           rbac.NewRoleRepo(db, logger),
+		PermissionRepo:     rbac.NewPermissionRepository(db, logger),
+		IssuedPracticeRepo: issued_practice.NewIssuedPracticeRepo(db, logger),
 	}
 }
