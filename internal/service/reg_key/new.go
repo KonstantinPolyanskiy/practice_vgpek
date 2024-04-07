@@ -59,6 +59,7 @@ func (s Service) NewKey(ctx context.Context, req registration_key.AddReq) (regis
 		dto := registration_key.DTO{
 			RoleId:         req.RoleId,
 			Body:           rndutils.RandNumberString(5) + rndutils.RandString(5),
+			GroupName:      req.GroupName,
 			MaxCountUsages: req.MaxCountUsages,
 		}
 

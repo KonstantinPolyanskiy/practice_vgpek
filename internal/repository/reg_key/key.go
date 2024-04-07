@@ -32,14 +32,15 @@ func (r Repository) SaveKey(ctx context.Context, key registration_key.DTO) (regi
 	var insertedKeyId int
 
 	insertKeyQuery := `
-	INSERT INTO registration_key (internal_role_id, body_key, max_count_usages, current_count_usages, created_at)  
-	VALUES (@RoleId, @BodyKey, @MaxCountUsages, @CurrentCountUsages, @CreatedAt)
+	INSERT INTO registration_key (internal_role_id, body_key, group_name, max_count_usages, current_count_usages, created_at)  
+	VALUES (@RoleId, @BodyKey, @GroupName, @MaxCountUsages, @CurrentCountUsages, @CreatedAt)
 	RETURNING reg_key_id
 	`
 
 	args := pgx.NamedArgs{
 		"RoleId":             key.RoleId,
 		"BodyKey":            key.Body,
+		"GroupName":          key.GroupName,
 		"MaxCountUsages":     key.MaxCountUsages,
 		"CurrentCountUsages": 0,
 		"CreatedAt":          time.Now(),

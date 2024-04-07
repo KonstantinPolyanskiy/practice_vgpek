@@ -39,6 +39,7 @@ func (h Handler) AddKey(w http.ResponseWriter, r *http.Request) {
 	}
 
 	l.Info("попытка создать новый ключ",
+		zap.String("группа", addingKey.GroupName),
 		zap.Int("роль ключа", addingKey.RoleId),
 		zap.Int("макс. кол-во исп-ий", addingKey.MaxCountUsages),
 	)
