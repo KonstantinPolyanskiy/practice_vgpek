@@ -92,7 +92,7 @@ func (h Handler) Registration(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Handler) Login(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 30000*time.Second)
 	defer cancel()
 
 	var logIn person.LogInReq
@@ -136,7 +136,7 @@ func (h Handler) Login(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	l.Info("пользователь успешно вошел", zap.Int("id аккаунта", (r.Context().Value("AdminId")).(int)))
+	l.Info("пользователь успешно вошел", zap.String("логин", logIn.Login))
 
 	render.JSON(w, r, token)
 	return
