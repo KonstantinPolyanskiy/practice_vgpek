@@ -13,6 +13,17 @@ import (
 	"time"
 )
 
+// @Summary		Создание ключа регистрации
+// @Security ApiKeyAuth
+// @Tags			ключ регистрации
+// @Description	Создает ключ регистрации
+// @ID				create-key
+// @Accept			json
+// @Produce		json
+// @Param			input	body		registration_key.AddReq	true	"Поля необходимые для создания ключа"
+// @Success		200		{object}	 registration_key.AddResp				"Возвращает id ключа в системе, его тело, кол-во использований и когда был создан"
+// @Failure		default	{object}	apperr.AppError
+// @Router			/key	 [post]
 func (h AccessHandler) AddPermission(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
@@ -36,7 +47,7 @@ func (h AccessHandler) AddPermission(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	added, err := h.s.NewPermission(ctx, addingPerm)
+	_, err = h.s.NewPermission(ctx, addingPerm)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
@@ -55,8 +66,8 @@ func (h AccessHandler) AddPermission(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	l.Info("permission successfully added")
+	l.Info("доступы успешно назначены")
 
-	render.JSON(w, r, &added)
+	render.JSON(w, r, permissions.AddPermResp{AddPermReq: addingPerm})
 	return
 }

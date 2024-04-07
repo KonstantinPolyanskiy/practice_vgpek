@@ -8,7 +8,7 @@ type AddPermReq struct {
 }
 
 type AddPermResp struct {
-	Success string `json:"success"`
+	AddPermReq `json:"added"`
 }
 
 type PermissionEntity struct {
