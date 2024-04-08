@@ -14,6 +14,17 @@ import (
 	"time"
 )
 
+// @Summary		удаление ключа регистрации
+// @Security		ApiKeyAuth
+// @Tags			ключ регистрации
+// @Description	Удаляет ключ регистрации
+// @ID				delete-key
+// @Accept			json
+// @Produce		json
+// @Param			input	body		registration_key.DeleteReq	true	"Поля необходимые для создания ключа"
+// @Success		200		{object}	registration_key.DeleteResp	"Возвращает id удаленного ключа"
+// @Failure		default	{object}	apperr.AppError
+// @Router			/key	 [delete]
 func (h Handler) DeleteKey(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()

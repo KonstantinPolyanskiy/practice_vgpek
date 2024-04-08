@@ -13,17 +13,17 @@ import (
 	"time"
 )
 
-// @Summary		Создание ключа регистрации
-// @Security ApiKeyAuth
-// @Tags			ключ регистрации
-// @Description	Создает ключ регистрации
-// @ID				create-key
+// @Summary		Назначение доступов
+// @Security		ApiKeyAuth
+// @Tags			доступы
+// @Description	Назначает права действия
+// @ID				add-perm
 // @Accept			json
 // @Produce		json
-// @Param			input	body		registration_key.AddReq	true	"Поля необходимые для создания ключа"
-// @Success		200		{object}	 registration_key.AddResp				"Возвращает id ключа в системе, его тело, кол-во использований и когда был создан"
-// @Failure		default	{object}	apperr.AppError
-// @Router			/key	 [post]
+// @Param			input			body		permissions.AddPermReq	true	"Поля назначении у роли к объекту действий"
+// @Success		200				{object}	permissions.AddPermResp	"Возвращает id роли, id объекта и id действий, к ним добавленные"
+// @Failure		default			{object}	apperr.AppError
+// @Router			/permissions	 [post]
 func (h AccessHandler) AddPermission(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
@@ -31,14 +31,14 @@ func (h AccessHandler) AddPermission(w http.ResponseWriter, r *http.Request) {
 	var addingPerm permissions.AddPermReq
 
 	l := h.l.With(
-		zap.String("endpoint", r.RequestURI),
-		zap.String("action", operation.AddPermissionOperation),
-		zap.String("layer", "handlers"),
+		zap.String("адрес", r.RequestURI),
+		zap.String("операция", operation.AddPermissionOperation),
+		zap.String("слой", "http обработчики"),
 	)
 
 	err := json.NewDecoder(r.Body).Decode(&addingPerm)
 	if err != nil {
-		l.Warn("error parse new perm request", zap.Error(err))
+		l.Warn("ошибка декодирования данных", zap.Error(err))
 
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
 			Action: operation.AddPermissionOperation,
@@ -56,8 +56,6 @@ func (h AccessHandler) AddPermission(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		} else {
-			l.Warn("error add permission", zap.Ints("adding id's", addingPerm.ActionsId))
-
 			apperr.New(w, r, http.StatusInternalServerError, apperr.AppError{
 				Action: operation.AddPermissionOperation,
 				Error:  err.Error(),

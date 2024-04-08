@@ -31,6 +31,16 @@ func NewAuthenticationHandler(service Service, logger *zap.Logger) Handler {
 	}
 }
 
+// @Summary		Регистрация
+// @Tags			авторизация
+// @Description	Cоздает аккаунт по ключу регистрации
+// @ID				create-person
+// @Accept			json
+// @Produce		json
+// @Param			input	body		person.RegistrationReq	true	"Поля необходимые для регистрации"
+// @Success		200		{object}	person.RegisteredResp	"На кого зарегестрирован аккаунт и кем"
+// @Failure		default	{object}	apperr.AppError
+// @Router			/registration [post]
 func (h Handler) Registration(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 10000*time.Second)
 	defer cancel()
@@ -91,6 +101,16 @@ func (h Handler) Registration(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+// @Summary		Авторизация
+// @Tags			авторизация
+// @Description	Вход в систему (возвращает jwt bearer token)
+// @ID				login
+// @Accept			json
+// @Produce		json
+// @Param			input	body		person.LogInReq		true	"Поля необходимые для авторизации"
+// @Success		200		{object}	person.LogInResp	"Token для авторизации"
+// @Failure		default	{object}	apperr.AppError
+// @Router			/login [post]
 func (h Handler) Login(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 30000*time.Second)
 	defer cancel()

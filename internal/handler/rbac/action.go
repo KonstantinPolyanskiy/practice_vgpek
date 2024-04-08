@@ -15,6 +15,17 @@ import (
 	"time"
 )
 
+// @Summary		Создание действия
+// @Security		ApiKeyAuth
+// @Tags			Действие
+// @Description	Создает действие в системе
+// @ID				create-action
+// @Accept			json
+// @Produce		json
+// @Param			input	body		permissions.AddActionReq	true	"Поля необходимые для создания действия"
+// @Success		200		{object}	permissions.AddObjectResp	"Возвращает название созданного действия"
+// @Failure		default	{object}	apperr.AppError
+// @Router			/action	 [post]
 func (h AccessHandler) AddAction(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
@@ -29,7 +40,7 @@ func (h AccessHandler) AddAction(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&addingAction)
 	if err != nil {
-		l.Warn("error parse new action request", zap.Error(err))
+		l.Warn("ошибка декодирования данных", zap.Error(err))
 
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
 			Action: operation.AddActionOperation,
@@ -47,8 +58,6 @@ func (h AccessHandler) AddAction(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		} else {
-			l.Warn("error add action", zap.String("action name", addingAction.Name))
-
 			apperr.New(w, r, http.StatusInternalServerError, apperr.AppError{
 				Action: operation.AddActionOperation,
 				Error:  err.Error(),
@@ -57,12 +66,23 @@ func (h AccessHandler) AddAction(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	l.Info("action successfully added", zap.String("action name", added.Name))
+	l.Info("действие успешно добавлено", zap.String("название действия", added.Name))
 
 	render.JSON(w, r, &added)
 	return
 }
 
+// @Summary		Получение действия
+// @Security		ApiKeyAuth
+// @Tags			Действие
+// @Description	Получение объекта действия по id
+// @ID				get-action
+// @Accept			json
+// @Produce		json
+// @Param			id		query		int							true	"ID действия"
+// @Success		200		{object}	permissions.GetActionResp	"Возвращает id и название действия"
+// @Failure		default	{object}	apperr.AppError
+// @Router			/object	 [get]
 func (h AccessHandler) GetAction(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3000*time.Second)
 	defer cancel()
@@ -70,14 +90,14 @@ func (h AccessHandler) GetAction(w http.ResponseWriter, r *http.Request) {
 	var req permissions.GetActionReq
 
 	l := h.l.With(
-		zap.String("endpoint", r.RequestURI),
-		zap.String("action", operation.GetActionOperation),
-		zap.String("layer", "handlers"),
+		zap.String("адрес", r.RequestURI),
+		zap.String("операция", operation.GetActionOperation),
+		zap.String("слой", "http обработчики"),
 	)
 
 	id, err := strconv.Atoi(r.URL.Query().Get("id"))
 	if err != nil {
-		l.Warn("error parse get action request", zap.Error(err))
+		l.Warn("ошибка декодирования данных", zap.Error(err))
 
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
 			Action: operation.GetActionOperation,
@@ -96,7 +116,7 @@ func (h AccessHandler) GetAction(w http.ResponseWriter, r *http.Request) {
 				Error:  "Таймаут",
 			})
 			return
-		} else if err != nil {
+		} else {
 			code := http.StatusInternalServerError
 
 			if errors.Is(err, permissions.ErrDontHavePerm) {
@@ -111,6 +131,8 @@ func (h AccessHandler) GetAction(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	l.Info("действие успешно отдано", zap.String("название действия", action.Name))
+
 	render.JSON(w, r, permissions.GetActionResp{
 		Id:   action.Id,
 		Name: action.Name,
@@ -118,6 +140,18 @@ func (h AccessHandler) GetAction(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+// @Summary		Получение действий по параметрам
+// @Security		ApiKeyAuth
+// @Tags			Действие
+// @Description	Получение действий
+// @ID				get-actions
+// @Accept			json
+// @Produce		json
+// @Param			limit			query		int							false	"Сколько выдать действия"
+// @Param			offset			query		int							false	"С какой позиции выдать действия"
+// @Success		200				{object}	permissions.GetActionsResp	"Возвращает id и названия действия"
+// @Failure		default			{object}	apperr.AppError
+// @Router			/action/params	 [get]
 func (h AccessHandler) GetActions(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()

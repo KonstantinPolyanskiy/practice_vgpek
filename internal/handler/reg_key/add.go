@@ -14,7 +14,17 @@ import (
 	"time"
 )
 
-// AddKey REST хэндлер для создания нового ключа регистрации
+// @Summary		Создание ключа регистрации
+// @Security		ApiKeyAuth
+// @Tags			ключ регистрации
+// @Description	Создает ключ регистрации
+// @ID				create-key
+// @Accept			json
+// @Produce		json
+// @Param			input	body		registration_key.AddReq		true	"Поля необходимые для создания ключа"
+// @Success		200		{object}	registration_key.AddResp	"Возвращает id ключа в системе, его тело, кол-во использований и когда был создан"
+// @Failure		default	{object}	apperr.AppError
+// @Router			/key	 [post]
 func (h Handler) AddKey(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3000*time.Second)
 	defer cancel()

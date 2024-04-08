@@ -15,13 +15,26 @@ import (
 	"time"
 )
 
+// @Summary		получение ключей регистрации
+// @Security		ApiKeyAuth
+// @Tags			ключ регистрации
+// @Description	Удаляет ключ регистрации
+// @ID				get-key
+// @Accept			json
+// @Produce		json
+// @Param			limit	query		int							false	"Сколько выдать ключей"
+// @Param			offset	query		int							false	"С какой позиции выдать ключи"
+// @Param			valid	query		bool						false	"выдавать ключи валидные/невалидные"
+// @Success		200		{object}	registration_key.DeleteResp	"Возвращает id удаленного ключа"
+// @Failure		default	{object}	apperr.AppError
+// @Router			/key	 [get]
 func (h Handler) GetKeys(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 
 	l := h.l.With(
 		zap.String("адрес", r.RequestURI),
-		zap.String("operation", operation.GetKeysOperation),
+		zap.String("операция", operation.GetKeysOperation),
 		zap.String("слой", "http обработчики"),
 	)
 

@@ -18,10 +18,14 @@ import (
 	"time"
 )
 
-// @title Swagger example API
-// @version 1.0
-// @description This is a sample example
-// @termsOfService http://swagger.io/terms
+// @title						ВГПЭК API
+// @version					1312.0
+// @description				API для работы с практическими заданиями
+// @host						localhost:8080
+// @basePath					/
+// @securityDefinitions.apiKey	ApiKeyAuth
+// @in							header
+// @name						Authorization
 func main() {
 	mainCtx, cancel := context.WithCancel(context.Background())
 

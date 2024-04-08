@@ -15,6 +15,17 @@ import (
 	"time"
 )
 
+// @Summary		Создание объекта действия
+// @Security		ApiKeyAuth
+// @Tags			Объект действия
+// @Description	Создает объект действия в системе
+// @ID				create-object
+// @Accept			json
+// @Produce		json
+// @Param			input	body		permissions.AddObjectReq	true	"Поля необходимые для создания объекта"
+// @Success		200		{object}	permissions.AddObjectResp	"Возвращает название созданной роли"
+// @Failure		default	{object}	apperr.AppError
+// @Router			/object	 [post]
 func (h AccessHandler) AddObject(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
@@ -22,14 +33,14 @@ func (h AccessHandler) AddObject(w http.ResponseWriter, r *http.Request) {
 	var addingObject permissions.AddObjectReq
 
 	l := h.l.With(
-		zap.String("endpoint", r.RequestURI),
-		zap.String("action", operation.AddObjectOperation),
-		zap.String("layer", "handlers"),
+		zap.String("адрес", r.RequestURI),
+		zap.String("операция", operation.AddObjectOperation),
+		zap.String("слой", "http обработчики"),
 	)
 
 	err := json.NewDecoder(r.Body).Decode(&addingObject)
 	if err != nil {
-		l.Warn("error parse new object request")
+		l.Warn("ошибка декодирования данных", zap.Error(err))
 
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
 			Action: operation.AddObjectOperation,
@@ -47,8 +58,6 @@ func (h AccessHandler) AddObject(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		} else {
-			l.Warn("error add object", zap.String("object name", addingObject.Name))
-
 			apperr.New(w, r, http.StatusInternalServerError, apperr.AppError{
 				Action: operation.AddObjectOperation,
 				Error:  err.Error(),
@@ -57,12 +66,23 @@ func (h AccessHandler) AddObject(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	l.Info("object successfully added", zap.String("object name", added.Name))
+	l.Info("объект действия успешно добавлен", zap.String("название объекта", added.Name))
 
 	render.JSON(w, r, &added)
 	return
 }
 
+// @Summary		Получение объекта действия
+// @Security		ApiKeyAuth
+// @Tags			Объект действия
+// @Description	Получение объекта действия по id
+// @ID				get-object
+// @Accept			json
+// @Produce		json
+// @Param			id		query		int							true	"ID объекта"
+// @Success		200		{object}	permissions.GetObjectResp	"Возвращает id и название объекта"
+// @Failure		default	{object}	apperr.AppError
+// @Router			/object	 [get]
 func (h AccessHandler) GetObject(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
@@ -107,6 +127,8 @@ func (h AccessHandler) GetObject(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	l.Info("объект успешно отдан", zap.Int("id объекта", object.Id))
+
 	render.JSON(w, r, permissions.GetObjectResp{
 		Id:   object.Id,
 		Name: object.Name,
@@ -114,12 +136,32 @@ func (h AccessHandler) GetObject(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+// @Summary		Получение объектов по параметрам
+// @Security		ApiKeyAuth
+// @Tags			Объект действия
+// @Description	Получение объектов
+// @ID				get-objects
+// @Accept			json
+// @Produce		json
+// @Param			limit			query		int							false	"Сколько выдать ролей"
+// @Param			offset			query		int							false	"С какой позиции выдать роли"
+// @Success		200				{object}	permissions.GetObjectsResp	"Возвращает id и названия объектов"
+// @Failure		default			{object}	apperr.AppError
+// @Router			/object/params	 [get]
 func (h AccessHandler) GetObjects(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3000*time.Second)
 	defer cancel()
 
+	l := h.l.With(
+		zap.String("операция", r.RequestURI),
+		zap.String("операция", operation.GetObjectsOperation),
+		zap.String("слой", "http обработчики"),
+	)
+
 	defaultParams, err := queryutils.DefaultParams(r, 10, 0)
 	if err != nil {
+		l.Info("ошибка декодирования данных", zap.Error(err))
+
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
 			Action: operation.GetObjectsOperation,
 			Error:  "Неправильные параметры запроса",
@@ -157,6 +199,8 @@ func (h AccessHandler) GetObjects(w http.ResponseWriter, r *http.Request) {
 			Name: object.Name,
 		})
 	}
+
+	l.Info("объекты успешно отданы")
 
 	render.JSON(w, r, resp)
 	return
