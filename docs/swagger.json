@@ -1,0 +1,883 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "API для работы с практическими заданиями",
+        "title": "ВГПЭК API",
+        "contact": {},
+        "version": "1312.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/",
+    "paths": {
+        "/action": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Создает действие в системе",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Действие"
+                ],
+                "summary": "Создание действия",
+                "operationId": "create-action",
+                "parameters": [
+                    {
+                        "description": "Поля необходимые для создания действия",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/practice_vgpek_internal_model_permissions.AddActionReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Возвращает название созданного действия",
+                        "schema": {
+                            "$ref": "#/definitions/practice_vgpek_internal_model_permissions.AddObjectResp"
+                        }
+                    },
+                    "default": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/practice_vgpek_pkg_apperr.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/action/params": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Получение действий",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Действие"
+                ],
+                "summary": "Получение действий по параметрам",
+                "operationId": "get-actions",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Сколько выдать действия",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "С какой позиции выдать действия",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Возвращает id и названия действия",
+                        "schema": {
+                            "$ref": "#/definitions/practice_vgpek_internal_model_permissions.GetActionsResp"
+                        }
+                    },
+                    "default": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/practice_vgpek_pkg_apperr.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/key": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Удаляет ключ регистрации",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ключ регистрации"
+                ],
+                "summary": "получение ключей регистрации",
+                "operationId": "get-key",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Сколько выдать ключей",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "С какой позиции выдать ключи",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "выдавать ключи валидные/невалидные",
+                        "name": "valid",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Возвращает id удаленного ключа",
+                        "schema": {
+                            "$ref": "#/definitions/practice_vgpek_internal_model_registration_key.DeleteResp"
+                        }
+                    },
+                    "default": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/practice_vgpek_pkg_apperr.AppError"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Создает ключ регистрации",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ключ регистрации"
+                ],
+                "summary": "Создание ключа регистрации",
+                "operationId": "create-key",
+                "parameters": [
+                    {
+                        "description": "Поля необходимые для создания ключа",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/practice_vgpek_internal_model_registration_key.AddReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Возвращает id ключа в системе, его тело, кол-во использований и когда был создан",
+                        "schema": {
+                            "$ref": "#/definitions/practice_vgpek_internal_model_registration_key.AddResp"
+                        }
+                    },
+                    "default": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/practice_vgpek_pkg_apperr.AppError"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Удаляет ключ регистрации",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ключ регистрации"
+                ],
+                "summary": "удаление ключа регистрации",
+                "operationId": "delete-key",
+                "parameters": [
+                    {
+                        "description": "Поля необходимые для создания ключа",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/practice_vgpek_internal_model_registration_key.DeleteReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Возвращает id удаленного ключа",
+                        "schema": {
+                            "$ref": "#/definitions/practice_vgpek_internal_model_registration_key.DeleteResp"
+                        }
+                    },
+                    "default": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/practice_vgpek_pkg_apperr.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/login": {
+            "post": {
+                "description": "Вход в систему (возвращает jwt bearer token)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "авторизация"
+                ],
+                "summary": "Авторизация",
+                "operationId": "login",
+                "parameters": [
+                    {
+                        "description": "Поля необходимые для авторизации",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/practice_vgpek_internal_model_person.LogInReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Token для авторизации",
+                        "schema": {
+                            "$ref": "#/definitions/practice_vgpek_internal_model_person.LogInResp"
+                        }
+                    },
+                    "default": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/practice_vgpek_pkg_apperr.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/object": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Получение объекта действия по id",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Объект действия"
+                ],
+                "summary": "Получение объекта действия",
+                "operationId": "get-object",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID объекта",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Возвращает id и название объекта",
+                        "schema": {
+                            "$ref": "#/definitions/practice_vgpek_internal_model_permissions.GetObjectResp"
+                        }
+                    },
+                    "default": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/practice_vgpek_pkg_apperr.AppError"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Создает объект действия в системе",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Объект действия"
+                ],
+                "summary": "Создание объекта действия",
+                "operationId": "create-object",
+                "parameters": [
+                    {
+                        "description": "Поля необходимые для создания объекта",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/practice_vgpek_internal_model_permissions.AddObjectReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Возвращает название созданной роли",
+                        "schema": {
+                            "$ref": "#/definitions/practice_vgpek_internal_model_permissions.AddObjectResp"
+                        }
+                    },
+                    "default": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/practice_vgpek_pkg_apperr.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/object/params": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Получение объектов",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Объект действия"
+                ],
+                "summary": "Получение объектов по параметрам",
+                "operationId": "get-objects",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Сколько выдать ролей",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "С какой позиции выдать роли",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Возвращает id и названия объектов",
+                        "schema": {
+                            "$ref": "#/definitions/practice_vgpek_internal_model_permissions.GetObjectsResp"
+                        }
+                    },
+                    "default": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/practice_vgpek_pkg_apperr.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/permissions": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Назначает права действия",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "доступы"
+                ],
+                "summary": "Назначение доступов",
+                "operationId": "add-perm",
+                "parameters": [
+                    {
+                        "description": "Поля назначении у роли к объекту действий",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/practice_vgpek_internal_model_permissions.AddPermReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Возвращает id роли, id объекта и id действий, к ним добавленные",
+                        "schema": {
+                            "$ref": "#/definitions/practice_vgpek_internal_model_permissions.AddPermResp"
+                        }
+                    },
+                    "default": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/practice_vgpek_pkg_apperr.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/registration": {
+            "post": {
+                "description": "Cоздает аккаунт по ключу регистрации",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "авторизация"
+                ],
+                "summary": "Регистрация",
+                "operationId": "create-person",
+                "parameters": [
+                    {
+                        "description": "Поля необходимые для регистрации",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/practice_vgpek_internal_model_person.RegistrationReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "На кого зарегестрирован аккаунт и кем",
+                        "schema": {
+                            "$ref": "#/definitions/practice_vgpek_internal_model_person.RegisteredResp"
+                        }
+                    },
+                    "default": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/practice_vgpek_pkg_apperr.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/role": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Создает роль в системе",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Роль"
+                ],
+                "summary": "Создание роли",
+                "operationId": "create-role",
+                "parameters": [
+                    {
+                        "description": "Поля необходимые для создания роли",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/practice_vgpek_internal_model_permissions.AddRoleReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Возвращает название созданной роли",
+                        "schema": {
+                            "$ref": "#/definitions/practice_vgpek_internal_model_permissions.AddRoleResp"
+                        }
+                    },
+                    "default": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/practice_vgpek_pkg_apperr.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/role/params": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Получение ролей",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Роль"
+                ],
+                "summary": "Получение ролей по параметрам",
+                "operationId": "get-roles",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Сколько выдать ролей",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "С какой позиции выдать роли",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID ключа",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Возвращает id и названия ролей",
+                        "schema": {
+                            "$ref": "#/definitions/practice_vgpek_internal_model_permissions.GetRolesResp"
+                        }
+                    },
+                    "default": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/practice_vgpek_pkg_apperr.AppError"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "practice_vgpek_internal_model_permissions.AddActionReq": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "practice_vgpek_internal_model_permissions.AddObjectReq": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "practice_vgpek_internal_model_permissions.AddObjectResp": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "practice_vgpek_internal_model_permissions.AddPermReq": {
+            "type": "object",
+            "properties": {
+                "actions_id": {
+                    "description": "Слайс действий, которые над объектом может производить роль",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "object_id": {
+                    "type": "integer"
+                },
+                "role_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "practice_vgpek_internal_model_permissions.AddPermResp": {
+            "type": "object",
+            "properties": {
+                "added": {
+                    "$ref": "#/definitions/practice_vgpek_internal_model_permissions.AddPermReq"
+                }
+            }
+        },
+        "practice_vgpek_internal_model_permissions.AddRoleReq": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "practice_vgpek_internal_model_permissions.AddRoleResp": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "practice_vgpek_internal_model_permissions.GetActionResp": {
+            "type": "object",
+            "properties": {
+                "action_id": {
+                    "type": "integer"
+                },
+                "action_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "practice_vgpek_internal_model_permissions.GetActionsResp": {
+            "type": "object",
+            "properties": {
+                "actions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/practice_vgpek_internal_model_permissions.GetActionResp"
+                    }
+                }
+            }
+        },
+        "practice_vgpek_internal_model_permissions.GetObjectResp": {
+            "type": "object",
+            "properties": {
+                "object_id": {
+                    "type": "integer"
+                },
+                "object_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "practice_vgpek_internal_model_permissions.GetObjectsResp": {
+            "type": "object",
+            "properties": {
+                "objects": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/practice_vgpek_internal_model_permissions.GetObjectResp"
+                    }
+                }
+            }
+        },
+        "practice_vgpek_internal_model_permissions.GetRoleResp": {
+            "type": "object",
+            "properties": {
+                "role_id": {
+                    "type": "integer"
+                },
+                "role_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "practice_vgpek_internal_model_permissions.GetRolesResp": {
+            "type": "object",
+            "properties": {
+                "roles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/practice_vgpek_internal_model_permissions.GetRoleResp"
+                    }
+                }
+            }
+        },
+        "practice_vgpek_internal_model_person.LogInReq": {
+            "type": "object",
+            "required": [
+                "login",
+                "password"
+            ],
+            "properties": {
+                "login": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "practice_vgpek_internal_model_person.LogInResp": {
+            "type": "object",
+            "properties": {
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "practice_vgpek_internal_model_person.RegisteredResp": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "middle_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "practice_vgpek_internal_model_person.RegistrationReq": {
+            "type": "object",
+            "properties": {
+                "first_name": {
+                    "type": "string"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "login": {
+                    "type": "string"
+                },
+                "middle_name": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "registration_key": {
+                    "type": "string"
+                }
+            }
+        },
+        "practice_vgpek_internal_model_registration_key.AddReq": {
+            "type": "object",
+            "properties": {
+                "group_name": {
+                    "type": "string"
+                },
+                "max_count_usages": {
+                    "type": "integer"
+                },
+                "role_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "practice_vgpek_internal_model_registration_key.AddResp": {
+            "type": "object",
+            "properties": {
+                "body": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "current_count_usages": {
+                    "type": "integer"
+                },
+                "max_count_usages": {
+                    "type": "integer"
+                },
+                "reg_key_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "practice_vgpek_internal_model_registration_key.DeleteReq": {
+            "type": "object",
+            "properties": {
+                "key_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "practice_vgpek_internal_model_registration_key.DeleteResp": {
+            "type": "object",
+            "properties": {
+                "key_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "practice_vgpek_pkg_apperr.AppError": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string"
+                },
+                "error": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "ApiKeyAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
+    }
+}
