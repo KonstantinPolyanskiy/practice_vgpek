@@ -59,5 +59,11 @@ const (
 const (
 	UploadIssuedPracticeOperation = "добавление практического задания"
 	GetIssuedPracticeInfoById     = "получение по id информации по практическому заданию"
+	GetIssuedPracticeInfoByParams = "получение по параметрам информации по практическими заданиям"
 	DownloadIssuedPractice        = "получение ссылки для загрузки практического задания"
+)
+
+const (
+	UploadSolvedPracticeOperation = "добавление выполненной практической работы"
+	GetSolvedPracticeInfoById     = "получение по id информации по выполненной практической работе"
 )

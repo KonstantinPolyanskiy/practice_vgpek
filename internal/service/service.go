@@ -15,6 +15,7 @@ import (
 	"practice_vgpek/internal/service/issued_practice"
 	"practice_vgpek/internal/service/rbac"
 	"practice_vgpek/internal/service/reg_key"
+	"practice_vgpek/internal/service/solved_practice"
 	"practice_vgpek/internal/storage"
 )
 
@@ -52,11 +53,14 @@ type IssuedPracticeService interface {
 	ById(ctx context.Context, id int) (issued.Entity, error)
 }
 
+type SolvedPracticeService interface{}
+
 type Service struct {
 	AuthnService
 	KeyService
 	RBACService
 	IssuedPracticeService
+	SolvedPracticeService
 }
 
 func New(repository repository.Repository, logger *zap.Logger) Service {
@@ -69,5 +73,6 @@ func New(repository repository.Repository, logger *zap.Logger) Service {
 		KeyService:            reg_key.NewKeyService(repository.KeyRepo, logger, am),
 		RBACService:           rbac.NewRBACService(repository.ActionRepo, repository.ObjectRepo, repository.RoleRepo, repository.PermissionRepo, am, logger),
 		IssuedPracticeService: issued_practice.NewIssuedPracticeService(repository.IssuedPracticeRepo, fileStorage, am, pm, logger),
+		SolvedPracticeService: solved_practice.NewSolvedPracticeService(logger),
 	}
 }

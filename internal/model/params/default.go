@@ -9,3 +9,8 @@ type Key struct {
 	IsValid bool `json:"is_valid"`
 	Default
 }
+
+type IssuedPractice struct {
+	IsSolved string `json:"is_solved"`
+	Default
+}

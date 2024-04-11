@@ -10,6 +10,7 @@ import (
 	"practice_vgpek/internal/handler/issued_practice"
 	"practice_vgpek/internal/handler/rbac"
 	"practice_vgpek/internal/handler/reg_key"
+	"practice_vgpek/internal/handler/solved_practice"
 	"practice_vgpek/internal/service"
 )
 
@@ -46,16 +47,28 @@ type RBACHandler interface {
 
 type IssuedPracticeHandler interface {
 	Upload(w http.ResponseWriter, r *http.Request)
+
 	PracticeById(w http.ResponseWriter, r *http.Request)
+	PracticeByParams(w http.ResponseWriter, r *http.Request)
+
 	Download(w http.ResponseWriter, r *http.Request)
+}
+
+type SolvedPracticeHandler interface {
+	Upload(w http.ResponseWriter, r *http.Request)
 }
 
 type Handler struct {
 	l *zap.Logger
+
 	AuthnHandler
+
 	KeyHandler
+
 	RBACHandler
+
 	IssuedPracticeHandler
+	SolvedPracticeHandler
 }
 
 func New(service service.Service, logger *zap.Logger) Handler {
@@ -65,6 +78,7 @@ func New(service service.Service, logger *zap.Logger) Handler {
 		KeyHandler:            reg_key.NewRegKeyHandler(service.KeyService, logger),
 		RBACHandler:           rbac.NewAccessHandler(service.RBACService, logger),
 		IssuedPracticeHandler: issued_practice.NewIssuedPracticeHandler(service.IssuedPracticeService, logger),
+		SolvedPracticeHandler: solved_practice.NewCompletedPracticeHandler(service.SolvedPracticeService, logger),
 	}
 }
 
@@ -127,8 +141,11 @@ func (h Handler) Init() *chi.Mux {
 			r.Use(h.AuthnHandler.Identity)
 
 			r.Post("/", h.IssuedPracticeHandler.Upload)
+
 			r.Get("/", h.IssuedPracticeHandler.PracticeById)
 			r.Get("/download", h.IssuedPracticeHandler.Download)
+			r.Get("/params", h.IssuedPracticeHandler.PracticeByParams)
+
 		})
 	})
 
