@@ -7,8 +7,19 @@ import (
 	"practice_vgpek/internal/model/practice/issued"
 )
 
+const (
+	AddActionName = "ADD"
+	GetActionName = "GET"
+	ObjectName    = "ISSUED PRACTICE"
+)
+
 type IssuedPracticeRepository interface {
 	Save(ctx context.Context, dto issued.DTO) (issued.Entity, error)
+	ById(ctx context.Context, id int) (issued.Entity, error)
+}
+
+type PracticeMediator interface {
+	IssuedGroupMatch(ctx context.Context, accountId, practiceId int) (bool, error)
 }
 
 type IssuedPracticeFileStorage interface {
@@ -25,13 +36,16 @@ type Service struct {
 	r  IssuedPracticeRepository
 	fs IssuedPracticeFileStorage
 	am AccountMediator
+	pm PracticeMediator
 }
 
-func NewIssuedPracticeService(issuedRepo IssuedPracticeRepository, fileStorage IssuedPracticeFileStorage, accountMediator AccountMediator, logger *zap.Logger) Service {
+func NewIssuedPracticeService(issuedRepo IssuedPracticeRepository, fileStorage IssuedPracticeFileStorage,
+	accountMediator AccountMediator, practiceMediator PracticeMediator, logger *zap.Logger) Service {
 	return Service{
 		l:  logger,
 		r:  issuedRepo,
 		fs: fileStorage,
 		am: accountMediator,
+		pm: practiceMediator,
 	}
 }

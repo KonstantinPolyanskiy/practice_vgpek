@@ -36,7 +36,6 @@ const (
 	AddActionOperation  = "добавление права действия в системе"
 	GetActionOperation  = "получение права действия по id"
 	GetActionsOperation = "получение прав действий по параметрам"
-	GetActi
 )
 
 // Операции с авторизацией
@@ -59,4 +58,6 @@ const (
 // Операции с практическими заданиями
 const (
 	UploadIssuedPracticeOperation = "добавление практического задания"
+	GetIssuedPracticeInfoById     = "получение по id информации по практическому заданию"
+	DownloadIssuedPractice        = "получение ссылки для загрузки практического задания"
 )

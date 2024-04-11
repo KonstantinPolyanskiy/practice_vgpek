@@ -17,11 +17,6 @@ type SavePracticeResult struct {
 	Error         error
 }
 
-const (
-	AddActionName = "ADD"
-	ObjectName    = "ISSUED PRACTICE"
-)
-
 func (s Service) Save(ctx context.Context, req issued.UploadReq) (issued.UploadResp, error) {
 	resCh := make(chan SavePracticeResult)
 
@@ -68,7 +63,6 @@ func (s Service) Save(ctx context.Context, req issued.UploadReq) (issued.UploadR
 		if err != nil {
 			sendUploadPracticeResult(resCh, issued.UploadResp{}, "Не удалось сохранить практическое задание")
 			return
-
 		}
 
 		resp := issued.UploadResp{

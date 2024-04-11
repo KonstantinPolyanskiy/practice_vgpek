@@ -13,22 +13,6 @@ import (
 	"time"
 )
 
-type IssuedPracticeService interface {
-	Save(ctx context.Context, req issued.UploadReq) (issued.UploadResp, error)
-}
-
-type Handler struct {
-	l *zap.Logger
-	s IssuedPracticeService
-}
-
-func NewIssuedPracticeHandler(service IssuedPracticeService, logger *zap.Logger) Handler {
-	return Handler{
-		s: service,
-		l: logger,
-	}
-}
-
 func (h Handler) Upload(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 10000*time.Second)
 	defer cancel()

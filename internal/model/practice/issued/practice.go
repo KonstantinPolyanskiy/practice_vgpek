@@ -5,6 +5,17 @@ import (
 	"time"
 )
 
+type GetPracticeResp struct {
+	PracticeId int `json:"practice_id"`
+	AuthorId   int `json:"author_id"`
+
+	Title string `json:"title"`
+	Theme string `json:"theme"`
+	Major string `json:"major"`
+
+	DownloadLink string `json:"download_link"`
+}
+
 type UploadReq struct {
 	TargetGroups []string        `json:"target_groups"`
 	Title        string          `json:"title"`

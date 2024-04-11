@@ -4,6 +4,7 @@ import (
 	"context"
 	"go.uber.org/zap"
 	"practice_vgpek/internal/mediator/account"
+	"practice_vgpek/internal/mediator/practice"
 	"practice_vgpek/internal/model/params"
 	"practice_vgpek/internal/model/permissions"
 	"practice_vgpek/internal/model/person"
@@ -48,6 +49,7 @@ type KeyService interface {
 
 type IssuedPracticeService interface {
 	Save(ctx context.Context, req issued.UploadReq) (issued.UploadResp, error)
+	ById(ctx context.Context, id int) (issued.Entity, error)
 }
 
 type Service struct {
@@ -59,12 +61,13 @@ type Service struct {
 
 func New(repository repository.Repository, logger *zap.Logger) Service {
 	am := account.NewAccountMediator(repository.AccountRepo, repository.KeyRepo, repository.RoleRepo, repository.PermissionRepo)
+	pm := practice.NewPracticeMediator(repository.AccountRepo, repository.IssuedPracticeRepo, repository.KeyRepo)
 	fileStorage := storage.NewFileStorage()
 
 	return Service{
 		AuthnService:          authn.NewAuthenticationService(repository.PersonRepo, repository.AccountRepo, repository.KeyRepo, logger),
 		KeyService:            reg_key.NewKeyService(repository.KeyRepo, logger, am),
 		RBACService:           rbac.NewRBACService(repository.ActionRepo, repository.ObjectRepo, repository.RoleRepo, repository.PermissionRepo, am, logger),
-		IssuedPracticeService: issued_practice.NewIssuedPracticeService(repository.IssuedPracticeRepo, fileStorage, am, logger),
+		IssuedPracticeService: issued_practice.NewIssuedPracticeService(repository.IssuedPracticeRepo, fileStorage, am, pm, logger),
 	}
 }

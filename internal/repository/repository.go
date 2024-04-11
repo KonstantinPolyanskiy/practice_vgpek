@@ -23,6 +23,7 @@ type PersonRepo interface {
 
 type IssuedPracticeRepo interface {
 	Save(ctx context.Context, dto issued.DTO) (issued.Entity, error)
+	ById(ctx context.Context, id int) (issued.Entity, error)
 }
 
 type PermissionRepo interface {

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/go-chi/render"
 	"go.uber.org/zap"
+	"log"
 	"net/http"
 	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/person"
@@ -116,7 +117,7 @@ func (h Handler) Login(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	var logIn person.LogInReq
-
+	log.Println(r.RequestURI)
 	l := h.l.With(
 		zap.String("адрес", r.RequestURI),
 		zap.String("операция", operation.LoginOperation),

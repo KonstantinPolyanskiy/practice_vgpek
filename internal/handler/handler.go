@@ -46,6 +46,8 @@ type RBACHandler interface {
 
 type IssuedPracticeHandler interface {
 	Upload(w http.ResponseWriter, r *http.Request)
+	PracticeById(w http.ResponseWriter, r *http.Request)
+	Download(w http.ResponseWriter, r *http.Request)
 }
 
 type Handler struct {
@@ -125,6 +127,8 @@ func (h Handler) Init() *chi.Mux {
 			r.Use(h.AuthnHandler.Identity)
 
 			r.Post("/", h.IssuedPracticeHandler.Upload)
+			r.Get("/", h.IssuedPracticeHandler.PracticeById)
+			r.Get("/download", h.IssuedPracticeHandler.Download)
 		})
 	})
 
