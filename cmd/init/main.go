@@ -2,14 +2,20 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"log"
+	"os"
+	"practice_vgpek/internal/model/registration_key"
 	"practice_vgpek/pkg/postgres"
+	"practice_vgpek/pkg/rndutils"
+	"time"
 )
 
-const baseApiUrl = "localhost:8080"
+const baseApiUrl = "127.0.0.1:8080"
 
 func mustLoadConfig() error {
 	viper.AddConfigPath("configs")
@@ -60,14 +66,15 @@ func main() {
 
 	iu := NewInitUtils(db, roles, actions, objects)
 
-	iu.createBaseRoles()
+	/*iu.createBaseRoles()
 	iu.createBaseActions()
 	iu.createBaseObjects()
 
 	for i := 1; i <= 5; i++ {
 		iu.setAdminPerm(i)
-	}
+	}*/
 
+	iu.createAdminKey(1)
 }
 
 func (u InitUtils) createBaseRoles() {
@@ -127,4 +134,53 @@ func (u InitUtils) setAdminPerm(objId int) {
 	}
 
 	log.Println("Доступы администратора успешно добавлены")
+}
+
+func (u InitUtils) createAdminKey(usages int) {
+	var insertedKeyId int
+
+	insertKeyQuery := `
+	INSERT INTO registration_key (internal_role_id, body_key, max_count_usages, current_count_usages, created_at)  
+	VALUES (@RoleId, @BodyKey, @MaxCountUsages, @CurrentCountUsages, @CreatedAt)
+	RETURNING reg_key_id
+	`
+
+	args := pgx.NamedArgs{
+		"RoleId":             1,
+		"BodyKey":            rndutils.RandNumberString(5) + rndutils.RandString(5),
+		"MaxCountUsages":     usages,
+		"CurrentCountUsages": 0,
+		"CreatedAt":          time.Now(),
+	}
+
+	err := u.db.QueryRow(context.Background(), insertKeyQuery, args).Scan(&insertedKeyId)
+	if err != nil {
+		log.Printf("Возникла ошибка %v при создании ключа доступа", err)
+	}
+
+	getKeyQuery := `SELECT * FROM registration_key WHERE reg_key_id = $1`
+
+	row, err := u.db.Query(context.Background(), getKeyQuery, insertedKeyId)
+	if err != nil {
+		log.Printf("Возникла ошибка %v при создании ключа доступа", err)
+	}
+
+	savedKey, err := pgx.CollectOneRow(row, pgx.RowToStructByName[registration_key.Entity])
+	if err != nil {
+		log.Printf("Возникла ошибка %v при создании ключа доступа", err)
+	}
+
+	file, err := os.Create("key.json")
+	if err != nil {
+		log.Printf("Ошибка создания файла - %v", err)
+		return
+	}
+	defer file.Close()
+
+	encoder := json.NewEncoder(file)
+	err = encoder.Encode(savedKey)
+	if err != nil {
+		log.Printf("Ошибка кодирования структуры - %v", err)
+		return
+	}
 }
