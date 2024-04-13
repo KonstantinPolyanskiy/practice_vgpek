@@ -19,10 +19,11 @@ type IssuedPracticeRepository interface {
 }
 
 type PracticeMediator interface {
+	// IssuedGroupMatch Проверяет, совпадает ли группа студента с одной из целевых груп практического задания
 	IssuedGroupMatch(ctx context.Context, accountId, practiceId int) (bool, error)
 }
 
-type IssuedPracticeFileStorage interface {
+type PracticeFileStorage interface {
 	// SaveFile возвращает путь, по которому был сохранен файл
 	SaveFile(ctx context.Context, file *multipart.File, root, ext, name string) (string, error)
 }
@@ -34,12 +35,12 @@ type AccountMediator interface {
 type Service struct {
 	l  *zap.Logger
 	r  IssuedPracticeRepository
-	fs IssuedPracticeFileStorage
+	fs PracticeFileStorage
 	am AccountMediator
 	pm PracticeMediator
 }
 
-func NewIssuedPracticeService(issuedRepo IssuedPracticeRepository, fileStorage IssuedPracticeFileStorage,
+func NewIssuedPracticeService(issuedRepo IssuedPracticeRepository, fileStorage PracticeFileStorage,
 	accountMediator AccountMediator, practiceMediator PracticeMediator, logger *zap.Logger) Service {
 	return Service{
 		l:  logger,

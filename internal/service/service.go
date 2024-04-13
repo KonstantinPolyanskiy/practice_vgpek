@@ -9,6 +9,7 @@ import (
 	"practice_vgpek/internal/model/permissions"
 	"practice_vgpek/internal/model/person"
 	"practice_vgpek/internal/model/practice/issued"
+	"practice_vgpek/internal/model/practice/solved"
 	"practice_vgpek/internal/model/registration_key"
 	"practice_vgpek/internal/repository"
 	"practice_vgpek/internal/service/authn"
@@ -53,7 +54,9 @@ type IssuedPracticeService interface {
 	ById(ctx context.Context, id int) (issued.Entity, error)
 }
 
-type SolvedPracticeService interface{}
+type SolvedPracticeService interface {
+	Save(ctx context.Context, req solved.UploadReq) (solved.UploadResp, error)
+}
 
 type Service struct {
 	AuthnService
@@ -65,14 +68,14 @@ type Service struct {
 
 func New(repository repository.Repository, logger *zap.Logger) Service {
 	am := account.NewAccountMediator(repository.AccountRepo, repository.KeyRepo, repository.RoleRepo, repository.PermissionRepo)
-	pm := practice.NewPracticeMediator(repository.AccountRepo, repository.IssuedPracticeRepo, repository.KeyRepo)
+	ipm := practice.NewIssuedPracticeMediator(repository.AccountRepo, repository.IssuedPracticeRepo, repository.KeyRepo)
 	fileStorage := storage.NewFileStorage()
 
 	return Service{
 		AuthnService:          authn.NewAuthenticationService(repository.PersonRepo, repository.AccountRepo, repository.KeyRepo, logger),
 		KeyService:            reg_key.NewKeyService(repository.KeyRepo, logger, am),
 		RBACService:           rbac.NewRBACService(repository.ActionRepo, repository.ObjectRepo, repository.RoleRepo, repository.PermissionRepo, am, logger),
-		IssuedPracticeService: issued_practice.NewIssuedPracticeService(repository.IssuedPracticeRepo, fileStorage, am, pm, logger),
-		SolvedPracticeService: solved_practice.NewSolvedPracticeService(logger),
+		IssuedPracticeService: issued_practice.NewIssuedPracticeService(repository.IssuedPracticeRepo, fileStorage, am, ipm, logger),
+		SolvedPracticeService: solved_practice.NewSolvedPracticeService(am, ipm, fileStorage, repository.SolvedPracticeRepo, repository.IssuedPracticeRepo, logger),
 	}
 }

@@ -10,10 +10,12 @@ import (
 	"net/http"
 	"os"
 	"practice_vgpek/internal/model/operation"
+	"practice_vgpek/internal/model/params"
 	"practice_vgpek/internal/model/permissions"
 	"practice_vgpek/internal/model/practice/issued"
 	"practice_vgpek/pkg/apiutils"
 	"practice_vgpek/pkg/apperr"
+	"practice_vgpek/pkg/queryutils"
 	"strconv"
 	"strings"
 	"time"
@@ -157,5 +159,60 @@ func (h Handler) Download(w http.ResponseWriter, r *http.Request) {
 			Error:  "не удалось выгрузить файл",
 		})
 		return
+	}
+}
+
+func (h Handler) PracticeByParams(w http.ResponseWriter, r *http.Request) {
+	_, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
+
+	l := h.l.With(
+		zap.String("адрес", r.RequestURI),
+		zap.String("операция", operation.GetIssuedPracticeInfoByParams),
+		zap.String("слой", "http обработчики"),
+	)
+
+	defaultParams, err := queryutils.DefaultParams(r, 10, 0)
+	if err != nil {
+		l.Warn("ошибка получени параметров запроса", zap.Error(err))
+
+		apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
+			Action: operation.GetIssuedPracticeInfoByParams,
+			Error:  "Неправильные параметры запроса",
+		})
+		return
+	}
+
+	practiceParams := getPracticeParams(r, defaultParams)
+
+	l.Info("попытка получить практические задания",
+		zap.Int("id аккаунта", r.Context().Value("AccountId").(int)),
+		zap.Int("лимит", practiceParams.Limit),
+		zap.Int("оффсет", practiceParams.Offset),
+		zap.String("статус решения", practiceParams.IsSolved),
+	)
+
+}
+
+func getPracticeParams(r *http.Request, defaultParams params.Default) params.IssuedPractice {
+	var isSolved string
+
+	v := r.URL.Query().Get("solved")
+
+	switch v {
+	case "all":
+		isSolved = "all"
+	case "yes":
+		isSolved = "yes"
+	case "no":
+		isSolved = "no"
+	// по умолчанию получают только не решенные практические
+	default:
+		isSolved = "no"
+	}
+
+	return params.IssuedPractice{
+		IsSolved: isSolved,
+		Default:  defaultParams,
 	}
 }

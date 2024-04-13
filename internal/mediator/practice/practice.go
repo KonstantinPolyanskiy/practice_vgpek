@@ -25,7 +25,7 @@ type Mediator struct {
 	keyRepo     KeyRepo
 }
 
-func NewPracticeMediator(accountRepo AccountRepo, issuedRepo IssuedPracticeRepo, keyRepo KeyRepo) Mediator {
+func NewIssuedPracticeMediator(accountRepo AccountRepo, issuedRepo IssuedPracticeRepo, keyRepo KeyRepo) Mediator {
 	return Mediator{
 		accountRepo: accountRepo,
 		issuedRepo:  issuedRepo,

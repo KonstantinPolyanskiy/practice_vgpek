@@ -9,12 +9,14 @@ import (
 	"practice_vgpek/internal/model/permissions"
 	"practice_vgpek/internal/model/person"
 	"practice_vgpek/internal/model/practice/issued"
+	"practice_vgpek/internal/model/practice/solved"
 	"practice_vgpek/internal/model/registration_key"
 	ar "practice_vgpek/internal/repository/account"
 	"practice_vgpek/internal/repository/issued_practice"
 	pr "practice_vgpek/internal/repository/person"
 	"practice_vgpek/internal/repository/rbac"
 	kr "practice_vgpek/internal/repository/reg_key"
+	"practice_vgpek/internal/repository/solved_practice"
 )
 
 type PersonRepo interface {
@@ -24,6 +26,10 @@ type PersonRepo interface {
 type IssuedPracticeRepo interface {
 	Save(ctx context.Context, dto issued.DTO) (issued.Entity, error)
 	ById(ctx context.Context, id int) (issued.Entity, error)
+}
+
+type SolvedPracticeRepo interface {
+	Save(ctx context.Context, dto solved.DTO) (solved.Entity, error)
 }
 
 type PermissionRepo interface {
@@ -82,6 +88,7 @@ type Repository struct {
 	PermissionRepo
 
 	IssuedPracticeRepo
+	SolvedPracticeRepo
 }
 
 func New(db *pgxpool.Pool, logger *zap.Logger) Repository {
@@ -94,5 +101,6 @@ func New(db *pgxpool.Pool, logger *zap.Logger) Repository {
 		RoleRepo:           rbac.NewRoleRepo(db, logger),
 		PermissionRepo:     rbac.NewPermissionRepository(db, logger),
 		IssuedPracticeRepo: issued_practice.NewIssuedPracticeRepo(db, logger),
+		SolvedPracticeRepo: solved_practice.NewSolvedPracticeRepository(db, logger),
 	}
 }

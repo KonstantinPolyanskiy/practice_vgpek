@@ -48,6 +48,7 @@ func (r Repository) Save(ctx context.Context, dto issued.DTO) (issued.Entity, er
 
 		return issued.Entity{}, err
 	}
+	defer row.Close()
 
 	savedPractice, err := pgx.CollectOneRow(row, pgx.RowToStructByName[issued.Entity])
 	if err != nil {
