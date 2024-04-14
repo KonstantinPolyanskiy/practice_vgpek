@@ -9,6 +9,7 @@ import (
 )
 
 const (
+	GetActionName    = "GET"
 	AddActionName    = "ADD"
 	SolvedObjectName = "SOLVED PRACTICE"
 	MarkObjectName   = "MARK"

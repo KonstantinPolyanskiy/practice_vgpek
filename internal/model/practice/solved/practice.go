@@ -5,6 +5,16 @@ import (
 	"time"
 )
 
+type GetPracticeResp struct {
+	IssuedPracticeId int `json:"issued_practice_id"`
+	SolvedPracticeId int `json:"solved_practice_id"`
+
+	SolvedTime time.Time `json:"solved_time,omitempty"`
+
+	Mark     int       `json:"mark,omitempty"`
+	MarkTime time.Time `json:"mark_time,o"`
+}
+
 type SetMarkReq struct {
 	SolvedPracticeId int `json:"solved_practice_id"`
 	Mark             int `json:"mark"`
