@@ -30,6 +30,8 @@ type IssuedPracticeRepo interface {
 
 type SolvedPracticeRepo interface {
 	Save(ctx context.Context, dto solved.DTO) (solved.Entity, error)
+	ById(ctx context.Context, id int) (solved.Entity, error)
+	Update(ctx context.Context, practice solved.Entity) (solved.Entity, error)
 }
 
 type PermissionRepo interface {

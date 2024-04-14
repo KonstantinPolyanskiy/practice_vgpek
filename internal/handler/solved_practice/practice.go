@@ -8,6 +8,7 @@ import (
 
 type SolvedPracticeService interface {
 	Save(ctx context.Context, req solved.UploadReq) (solved.UploadResp, error)
+	SetMark(ctx context.Context, req solved.SetMarkReq) (solved.SetMarkResp, error)
 }
 
 type Handler struct {

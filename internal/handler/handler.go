@@ -56,6 +56,10 @@ type IssuedPracticeHandler interface {
 
 type SolvedPracticeHandler interface {
 	Upload(w http.ResponseWriter, r *http.Request)
+
+	PracticeById(w http.ResponseWriter, r *http.Request)
+
+	SetMark(w http.ResponseWriter, r *http.Request)
 }
 
 type Handler struct {
@@ -151,6 +155,10 @@ func (h Handler) Init() *chi.Mux {
 			r.Use(h.AuthnHandler.Identity)
 
 			r.Post("/", h.SolvedPracticeHandler.Upload)
+
+			r.Post("/mark", h.SolvedPracticeHandler.SetMark)
+
+			r.Get("/", h.SolvedPracticeHandler.PracticeById)
 		})
 	})
 

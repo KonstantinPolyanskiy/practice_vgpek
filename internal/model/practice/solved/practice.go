@@ -5,6 +5,18 @@ import (
 	"time"
 )
 
+type SetMarkReq struct {
+	SolvedPracticeId int `json:"solved_practice_id"`
+	Mark             int `json:"mark"`
+}
+
+type SetMarkResp struct {
+	SolvedPracticeId int `json:"solved_practice_id"`
+
+	Mark     int       `json:"mark"`
+	MarkTime time.Time `json:"mark_time"`
+}
+
 type UploadReq struct {
 	IssuedPracticeId int `json:"issued_practice_id"`
 	File             *multipart.File

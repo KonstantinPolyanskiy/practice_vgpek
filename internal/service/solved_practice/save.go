@@ -27,7 +27,7 @@ func (s Service) Save(ctx context.Context, req solved.UploadReq) (solved.UploadR
 		accountId := ctx.Value("AccountId").(int)
 
 		// Проверка: есть ли доступ к загрузке практических работ
-		hasAccess, err := s.am.HasAccess(ctx, accountId, ObjectName, AddActionName)
+		hasAccess, err := s.am.HasAccess(ctx, accountId, SolvedObjectName, AddActionName)
 		if err != nil {
 			l.Warn("возникла ошибка при проверке прав", zap.Error(err))
 

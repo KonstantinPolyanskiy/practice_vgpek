@@ -56,6 +56,9 @@ type IssuedPracticeService interface {
 
 type SolvedPracticeService interface {
 	Save(ctx context.Context, req solved.UploadReq) (solved.UploadResp, error)
+	ById(ctx context.Context, id int) (solved.Entity, error)
+
+	SetMark(ctx context.Context, req solved.SetMarkReq) (solved.SetMarkResp, error)
 }
 
 type Service struct {

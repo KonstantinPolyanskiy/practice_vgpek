@@ -28,7 +28,7 @@ func (s Service) Save(ctx context.Context, req issued.UploadReq) (issued.UploadR
 	go func() {
 		accountId := ctx.Value("AccountId").(int)
 
-		hasAccess, err := s.am.HasAccess(ctx, accountId, ObjectName, AddActionName)
+		hasAccess, err := s.am.HasAccess(ctx, accountId, IssuedObjectName, AddActionName)
 		if err != nil || !hasAccess {
 			l.Warn("возникла ошибка при проверке прав", zap.Error(err))
 

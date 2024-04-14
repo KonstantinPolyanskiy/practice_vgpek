@@ -8,9 +8,9 @@ import (
 )
 
 const (
-	AddActionName = "ADD"
-	GetActionName = "GET"
-	ObjectName    = "ISSUED PRACTICE"
+	AddActionName    = "ADD"
+	GetActionName    = "GET"
+	IssuedObjectName = "ISSUED PRACTICE"
 )
 
 type IssuedPracticeRepository interface {

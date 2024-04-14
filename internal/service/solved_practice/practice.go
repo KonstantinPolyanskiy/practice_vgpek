@@ -9,12 +9,15 @@ import (
 )
 
 const (
-	AddActionName = "ADD"
-	ObjectName    = "SOLVED PRACTICE"
+	AddActionName    = "ADD"
+	SolvedObjectName = "SOLVED PRACTICE"
+	MarkObjectName   = "MARK"
 )
 
 type SolvedPracticeRepository interface {
 	Save(ctx context.Context, dto solved.DTO) (solved.Entity, error)
+	ById(ctx context.Context, id int) (solved.Entity, error)
+	Update(ctx context.Context, practice solved.Entity) (solved.Entity, error)
 }
 
 type IssuedPracticeRepository interface {

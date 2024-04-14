@@ -66,4 +66,5 @@ const (
 const (
 	UploadSolvedPracticeOperation = "добавление выполненной практической работы"
 	GetSolvedPracticeInfoById     = "получение по id информации по выполненной практической работе"
+	SetMarkSolvedPractice         = "выставление оценки выполненному практическому заданию"
 )

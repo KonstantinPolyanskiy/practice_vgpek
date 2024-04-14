@@ -28,7 +28,7 @@ func (s Service) ById(ctx context.Context, id int) (issued.Entity, error) {
 	go func() {
 		accountId := ctx.Value("AccountId").(int)
 
-		hasAccess, err := s.am.HasAccess(ctx, accountId, ObjectName, GetActionName)
+		hasAccess, err := s.am.HasAccess(ctx, accountId, IssuedObjectName, GetActionName)
 		if err != nil {
 			l.Warn("возникла ошибка при проверке прав", zap.Error(err))
 
