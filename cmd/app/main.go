@@ -19,7 +19,7 @@ import (
 )
 
 // @title						ВГПЭК API
-// @version					1312.0
+// @version					0.1
 // @description				API для работы с практическими заданиями
 // @host						localhost:8080
 // @basePath					/
