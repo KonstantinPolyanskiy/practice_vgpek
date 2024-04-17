@@ -1,5 +1,26 @@
 package operation
 
+const (
+	DataLayer    = "База данных"
+	ServiceLayer = "Бизнес логика"
+	HTTPLayer    = "REST API эндпоинты"
+)
+
+// Логгирование методов DAO
+const (
+	SaveActionDAO        = "сохранение действия в базу данных"
+	SelectActionById     = "получение действия из базы данных по id"
+	SoftDeleteActionById = "мягкое удаление действия по id"
+	Insert               = "вставка"
+	Select               = "получение"
+	Update               = "обновление"
+	ExecuteError         = "ошибка выполнения запроса"
+	CollectError         = "ошибка приведения к структуре"
+	SuccessfullyRecorded = "успешно сохранено в базу данных"
+	SuccessfullyReceived = "успешно получено из базы данных"
+	SuccessfullyUpdated  = "запись успешно обновлеа в базе данных"
+)
+
 // Операции с ключем
 const (
 	NewKeyOperation         = "создание нового ключа"
