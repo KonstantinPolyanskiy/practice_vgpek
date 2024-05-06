@@ -4,106 +4,117 @@ import (
 	"context"
 	"fmt"
 	"go.uber.org/zap"
+	"practice_vgpek/internal/model/domain"
+	"practice_vgpek/internal/model/dto"
+	"practice_vgpek/internal/model/entity"
+	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/params"
-	"practice_vgpek/internal/model/permissions"
+	"time"
 )
 
-type ObjectRepository interface {
-	SaveObject(ctx context.Context, savingObject permissions.ObjectDTO) (permissions.ObjectEntity, error)
-	ObjectById(ctx context.Context, id int) (permissions.ObjectEntity, error)
-	ObjectsByParams(ctx context.Context, params params.Default) ([]permissions.ObjectEntity, error)
+type ObjectDAO interface {
+	ById(ctx context.Context, id int) (entity.Object, error)
+	Save(ctx context.Context, role dto.NewRBACPart) (entity.Object, error)
+	ByParams(ctx context.Context, p params.Default) ([]entity.Object, error)
 }
 
 type GetObjectResult struct {
-	Object permissions.ObjectEntity
+	Object domain.Object
 	Error  error
 }
 
 type GetObjectsResult struct {
-	Objects []permissions.ObjectEntity
+	Objects []domain.Object
 	Error   error
 }
 
 type AddedObjectResult struct {
-	Object permissions.AddObjectResp
+	Object domain.Object
 	Error  error
 }
 
-func (s RBACService) NewObject(ctx context.Context, addingObject permissions.AddObjectReq) (permissions.AddObjectResp, error) {
+func (s RBACService) NewObject(ctx context.Context, req dto.NewRBACReq) (domain.Object, error) {
 	resCh := make(chan AddedObjectResult)
 
 	l := s.l.With(
-		zap.String("оперция", operation.AddObjectOperation),
-		zap.String("слой", "сервисы"),
+		zap.String(operation.Operation, operation.AddObjectOperation),
+		zap.String(layer.Layer, layer.ServiceLayer),
 	)
 
 	go func() {
 		// Проверяем что объект вообще введен
-		if addingObject.Name == "" {
+		if req.Name == "" {
 			l.Warn("Пустой добавляемый объект")
 
-			sendAddObjectResult(resCh, permissions.AddObjectResp{}, "Пустой добавляемый объект")
+			sendAddObjectResult(resCh, domain.Object{}, "Пустой добавляемый объект")
 			return
 		}
 
-		dto := permissions.ObjectDTO{
-			Name: addingObject.Name,
+		part := dto.NewRBACPart{
+			Name:        req.Name,
+			Description: req.Description,
+			CreatedAt:   time.Now(),
 		}
 
-		added, err := s.or.SaveObject(ctx, dto)
+		added, err := s.objectDAO.Save(ctx, part)
 		if err != nil {
-			sendAddObjectResult(resCh, permissions.AddObjectResp{}, "Неизвестная ошибка сохранения объекта действия")
+			sendAddObjectResult(resCh, domain.Object{}, "Неизвестная ошибка сохранения объекта действия")
 			return
 		}
 
-		resp := permissions.AddObjectResp{
-			Name: added.Name,
+		object := domain.Object{
+			ID:          added.Id,
+			Name:        added.Name,
+			Description: added.Description,
+			CreatedAt:   added.CreatedAt,
+			IsDeleted:   false,
+			DeletedAt:   nil,
 		}
 
-		sendAddObjectResult(resCh, resp, "")
+		sendAddObjectResult(resCh, object, "")
 		return
 	}()
 
 	for {
 		select {
 		case <-ctx.Done():
-			return permissions.AddObjectResp{}, ctx.Err()
+			return domain.Object{}, ctx.Err()
 		case result := <-resCh:
 			return result.Object, result.Error
 		}
 	}
 }
 
-func (s RBACService) ObjectById(ctx context.Context, id int) (permissions.ObjectEntity, error) {
+func (s RBACService) ObjectById(ctx context.Context, req dto.EntityId) (domain.Object, error) {
 	resCh := make(chan GetObjectResult)
 
 	l := s.l.With(
-		zap.String("операция", operation.GetObjectOperation),
-		zap.String("layer", "services"),
+		zap.String(operation.Operation, operation.GetObjectOperation),
+		zap.String(layer.Layer, layer.ServiceLayer),
 	)
 
 	go func() {
-		accountId := ctx.Value("AccountId").(int)
-
-		hasAccess, err := s.accountMediator.HasAccess(ctx, accountId, ObjectName, GetActionName)
+		objectEntity, err := s.objectDAO.ById(ctx, req.Id)
 		if err != nil {
-			l.Warn("Ошибка проверки доступа", zap.Error(err))
-
-			sendGetObjectResult(resCh, permissions.ObjectEntity{}, permissions.ErrCheckAccess.Error())
+			sendGetObjectResult(resCh, domain.Object{}, "Неизвестная ошибка получения объекта")
 			return
 		}
 
-		if !hasAccess {
-			sendGetObjectResult(resCh, permissions.ObjectEntity{}, permissions.ErrDontHavePerm.Error())
-			return
+		object := domain.Object{
+			ID:          objectEntity.Id,
+			Name:        objectEntity.Name,
+			Description: objectEntity.Description,
+			CreatedAt:   objectEntity.CreatedAt,
+			IsDeleted:   false,
+			DeletedAt:   nil,
 		}
 
-		object, err := s.or.ObjectById(ctx, id)
-		if err != nil {
-			sendGetObjectResult(resCh, permissions.ObjectEntity{}, "Неизвестная ошибка получения объекта")
-			return
-		}
+		l.Info("получение объекта по id",
+			zap.Int("id объекта", object.ID),
+			zap.Time("время создания", object.CreatedAt),
+			zap.Bool("удалено", object.IsDeleted),
+		)
 
 		sendGetObjectResult(resCh, object, "")
 		return
@@ -112,41 +123,57 @@ func (s RBACService) ObjectById(ctx context.Context, id int) (permissions.Object
 	for {
 		select {
 		case <-ctx.Done():
-			return permissions.ObjectEntity{}, ctx.Err()
+			return domain.Object{}, ctx.Err()
 		case result := <-resCh:
 			return result.Object, result.Error
 		}
 	}
 }
 
-func (s RBACService) ObjectsByParams(ctx context.Context, params params.Default) ([]permissions.ObjectEntity, error) {
+func (s RBACService) ObjectsByParams(ctx context.Context, p params.State) ([]domain.Object, error) {
 	resCh := make(chan GetObjectsResult)
 
-	l := s.l.With(
-		zap.String("операция", operation.GetObjectsOperation),
-		zap.String("слой", "сервисы"),
+	_ = s.l.With(
+		zap.String(operation.Operation, operation.GetObjectsOperation),
+		zap.String(layer.Layer, layer.ServiceLayer),
 	)
 
 	go func() {
-		accountId := ctx.Value("AccountId").(int)
-
-		hasAccess, err := s.accountMediator.HasAccess(ctx, accountId, ObjectName, GetActionName)
-		if err != nil {
-			l.Warn("ошибка проверки доступа", zap.Error(err))
-
-			sendGetObjectsResult(resCh, nil, permissions.ErrCheckAccess.Error())
-			return
-		}
-
-		if !hasAccess {
-			sendGetObjectsResult(resCh, nil, permissions.ErrDontHavePerm.Error())
-			return
-		}
-
-		objects, err := s.or.ObjectsByParams(ctx, params)
+		objectsEntity, err := s.objectDAO.ByParams(ctx, p.Default)
 		if err != nil {
 			sendGetObjectsResult(resCh, nil, "ошибка получения объектов действий")
 			return
+		}
+
+		objects := make([]domain.Object, 0, len(objectsEntity))
+		for _, objectEntity := range objectsEntity {
+			var isDeleted bool
+
+			if objectEntity.IsDeleted != nil {
+				isDeleted = true
+			}
+
+			object := domain.Object{
+				ID:          objectEntity.Id,
+				Name:        objectEntity.Name,
+				Description: objectEntity.Description,
+				CreatedAt:   objectEntity.CreatedAt,
+				IsDeleted:   isDeleted,
+				DeletedAt:   objectEntity.IsDeleted,
+			}
+
+			objects = append(objects, object)
+		}
+
+		resp := make([]domain.Object, 0, len(objects))
+
+		switch p.State {
+		case params.All:
+			copy(resp, objects)
+		case params.Deleted:
+			resp = append(resp, filterDeleted(objects)...)
+		case params.NotDeleted:
+			resp = append(resp, filterNotDeleted(objects)...)
 		}
 
 		sendGetObjectsResult(resCh, objects, "")
@@ -164,7 +191,7 @@ func (s RBACService) ObjectsByParams(ctx context.Context, params params.Default)
 	}
 }
 
-func sendAddObjectResult(resCh chan AddedObjectResult, resp permissions.AddObjectResp, errMsg string) {
+func sendAddObjectResult(resCh chan AddedObjectResult, resp domain.Object, errMsg string) {
 	var err error
 
 	if errMsg != "" {
@@ -176,7 +203,7 @@ func sendAddObjectResult(resCh chan AddedObjectResult, resp permissions.AddObjec
 		Error:  err,
 	}
 }
-func sendGetObjectResult(resCh chan GetObjectResult, resp permissions.ObjectEntity, errMsg string) {
+func sendGetObjectResult(resCh chan GetObjectResult, resp domain.Object, errMsg string) {
 	var err error
 
 	if errMsg != "" {
@@ -188,7 +215,7 @@ func sendGetObjectResult(resCh chan GetObjectResult, resp permissions.ObjectEnti
 		Error:  err,
 	}
 }
-func sendGetObjectsResult(resCh chan GetObjectsResult, resp []permissions.ObjectEntity, errMsg string) {
+func sendGetObjectsResult(resCh chan GetObjectsResult, resp []domain.Object, errMsg string) {
 	var err error
 
 	if errMsg != "" {

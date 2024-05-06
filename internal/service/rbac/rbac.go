@@ -17,26 +17,50 @@ type AccountMediator interface {
 
 type RBACService struct {
 	l               *zap.Logger
-	ar              ActionRepository
-	or              ObjectRepository
-	rr              RoleRepository
-	pr              PermissionRepo
+	actionDAO       ActionDAO
+	objectDAO       ObjectDAO
+	roleDAO         RoleDAO
+	permDAO         PermissionDAO
 	accountMediator AccountMediator
 }
 
-func NewRBACService(
-	actionRepo ActionRepository,
-	objectRepo ObjectRepository,
-	roleRepo RoleRepository,
-	permRepo PermissionRepo,
+func New(
+	actionDAO ActionDAO,
+	objectDAO ObjectDAO,
+	roleDAO RoleDAO,
+	permDAO PermissionDAO,
 	accountMediator AccountMediator,
 	logger *zap.Logger) RBACService {
 	return RBACService{
-		ar:              actionRepo,
-		or:              objectRepo,
-		rr:              roleRepo,
-		pr:              permRepo,
+		actionDAO:       actionDAO,
+		objectDAO:       objectDAO,
+		roleDAO:         roleDAO,
+		permDAO:         permDAO,
 		accountMediator: accountMediator,
 		l:               logger,
 	}
+}
+
+type Deletable interface {
+	Deleted() bool
+}
+
+// filterDeleted возвращает только удаленные элементы
+func filterDeleted[T Deletable](items []T) (result []T) {
+	for _, item := range items {
+		if item.Deleted() {
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
+// filterNotDeleted возвращает только не удаленные элементы
+func filterNotDeleted[T Deletable](items []T) (result []T) {
+	for _, item := range items {
+		if !item.Deleted() {
+			result = append(result, item)
+		}
+	}
+	return result
 }

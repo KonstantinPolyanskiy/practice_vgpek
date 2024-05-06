@@ -4,110 +4,134 @@ import (
 	"context"
 	"fmt"
 	"go.uber.org/zap"
+	"practice_vgpek/internal/model/domain"
+	"practice_vgpek/internal/model/dto"
+	"practice_vgpek/internal/model/entity"
+	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/params"
-	"practice_vgpek/internal/model/permissions"
+	"time"
 )
 
-type ActionRepository interface {
-	SaveAction(ctx context.Context, savingAction permissions.ActionDTO) (permissions.ActionEntity, error)
-	ActionById(ctx context.Context, id int) (permissions.ActionEntity, error)
-	ActionsByParams(ctx context.Context, params params.Default) ([]permissions.ActionEntity, error)
+type ActionDAO interface {
+	Save(ctx context.Context, part dto.NewRBACPart) (entity.Action, error)
+	ById(ctx context.Context, id int) (entity.Action, error)
+	ByParams(ctx context.Context, params params.Default) ([]entity.Action, error)
 }
 
 type AddedActionResult struct {
-	Action permissions.AddActionResp
+	Action domain.Action
 	Error  error
 }
 
 type GetActionResult struct {
-	Action permissions.ActionEntity
+	Action domain.Action
 	Error  error
 }
 
 type GetActionsResult struct {
-	Actions []permissions.ActionEntity
+	Actions []domain.Action
 	Error   error
 }
 
-func (s RBACService) NewAction(ctx context.Context, addingAction permissions.AddActionReq) (permissions.AddActionResp, error) {
+func (s RBACService) NewAction(ctx context.Context, req dto.NewRBACReq) (domain.Action, error) {
 	resCh := make(chan AddedActionResult)
 
 	l := s.l.With(
-		zap.String("операция", operation.AddActionOperation),
-		zap.String("слой", "сервисы"),
+		zap.String(operation.Operation, operation.AddActionOperation),
+		zap.String(layer.Layer, layer.ServiceLayer),
 	)
 
 	go func() {
 		// Проверяем что действие - не пустая строка
-		if addingAction.Name == "" {
+		if req.Name == "" {
 			l.Warn("попытка добавить пустое действие")
 
-			sendAddActionResult(resCh, permissions.AddActionResp{}, "Пустое добавляемое действие")
+			sendAddActionResult(resCh, domain.Action{}, "Пустое добавляемое действие")
 			return
 		}
 
 		// Формируем DTO
-		dto := permissions.ActionDTO{
-			Name: addingAction.Name,
+		part := dto.NewRBACPart{
+			Name:        req.Name,
+			Description: req.Description,
+			CreatedAt:   time.Now(),
 		}
 
 		// Сохраняем действие в БД
-		added, err := s.ar.SaveAction(ctx, dto)
+		added, err := s.actionDAO.Save(ctx, part)
 		if err != nil {
-			sendAddActionResult(resCh, permissions.AddActionResp{}, "Неизвестная ошибка сохранения действия")
+			sendAddActionResult(resCh, domain.Action{}, "Неизвестная ошибка сохранения действия")
 			return
 		}
 
+		var isDeleted bool
+
+		if added.IsDeleted != nil {
+			isDeleted = true
+		}
+
 		// Формируем ответ
-		resp := permissions.AddActionResp{
-			Name: added.Name,
+		action := domain.Action{
+			ID:          added.Id,
+			Name:        added.Name,
+			Description: added.Description,
+			CreatedAt:   added.CreatedAt,
+			IsDeleted:   isDeleted,
+			DeletedAt:   added.IsDeleted,
 		}
 
 		// Возвращаем ответ
-		sendAddActionResult(resCh, resp, "")
+		sendAddActionResult(resCh, action, "")
 		return
 	}()
 
 	for {
 		select {
 		case <-ctx.Done():
-			return permissions.AddActionResp{}, ctx.Err()
+			return domain.Action{}, ctx.Err()
 		case result := <-resCh:
 			return result.Action, result.Error
 		}
 	}
 }
 
-func (s RBACService) ActionById(ctx context.Context, req permissions.GetActionReq) (permissions.ActionEntity, error) {
+func (s RBACService) ActionById(ctx context.Context, req dto.EntityId) (domain.Action, error) {
 	resCh := make(chan GetActionResult)
 
 	l := s.l.With(
-		zap.String("операция", operation.GetActionOperation),
-		zap.String("слой", "сервисы"),
+		zap.String(operation.Operation, operation.GetActionOperation),
+		zap.String(layer.Layer, layer.ServiceLayer),
 	)
 
 	go func() {
-		accountId := ctx.Value("AccountId").(int)
-
-		hasAccess, err := s.accountMediator.HasAccess(ctx, accountId, ObjectName, GetActionName)
+		actionEntity, err := s.actionDAO.ById(ctx, req.Id)
 		if err != nil {
-			l.Warn("ошибка проверки доступа", zap.Error(err))
-
-			sendGetActionResult(resCh, permissions.ActionEntity{}, permissions.ErrCheckAccess.Error())
+			sendGetActionResult(resCh, domain.Action{}, "Ошибка получения действия")
 			return
 		}
 
-		if !hasAccess {
-			sendGetActionResult(resCh, permissions.ActionEntity{}, permissions.ErrDontHavePerm.Error())
-			return
+		var isDeleted bool
+
+		if actionEntity.IsDeleted != nil {
+			isDeleted = true
 		}
 
-		action, err := s.ar.ActionById(ctx, req.Id)
-		if err != nil {
-			sendGetActionResult(resCh, permissions.ActionEntity{}, "Ошибка получения действия")
-			return
+		// Формируем ответ
+		action := domain.Action{
+			ID:          actionEntity.Id,
+			Name:        actionEntity.Name,
+			Description: actionEntity.Description,
+			CreatedAt:   actionEntity.CreatedAt,
+			IsDeleted:   isDeleted,
+			DeletedAt:   actionEntity.IsDeleted,
 		}
+
+		l.Info("получение действия по id",
+			zap.Int("id действия", action.ID),
+			zap.Time("время создания", actionEntity.CreatedAt),
+			zap.Bool("удалено", isDeleted),
+		)
 
 		sendGetActionResult(resCh, action, "")
 		return
@@ -116,7 +140,7 @@ func (s RBACService) ActionById(ctx context.Context, req permissions.GetActionRe
 	for {
 		select {
 		case <-ctx.Done():
-			return permissions.ActionEntity{}, ctx.Err()
+			return domain.Action{}, ctx.Err()
 		case result := <-resCh:
 			return result.Action, result.Error
 
@@ -124,37 +148,55 @@ func (s RBACService) ActionById(ctx context.Context, req permissions.GetActionRe
 	}
 }
 
-func (s RBACService) ActionsByParams(ctx context.Context, params params.Default) ([]permissions.ActionEntity, error) {
+func (s RBACService) ActionsByParams(ctx context.Context, p params.State) ([]domain.Action, error) {
 	resCh := make(chan GetActionsResult)
 
-	l := s.l.With(
-		zap.String("операция", operation.GetActionsOperation),
-		zap.String("слой", "сервисы"),
+	_ = s.l.With(
+		zap.String(operation.Operation, operation.GetActionsOperation),
+		zap.String(layer.Layer, layer.ServiceLayer),
 	)
 
 	go func() {
-		accountId := ctx.Value("AccountId").(int)
-
-		hasAccess, err := s.accountMediator.HasAccess(ctx, accountId, ObjectName, GetActionName)
-		if err != nil {
-			l.Warn("ошибка проверки доступа", zap.Error(err))
-
-			sendGetActionsResult(resCh, nil, permissions.ErrCheckAccess.Error())
-			return
-		}
-
-		if !hasAccess {
-			sendGetActionsResult(resCh, nil, permissions.ErrDontHavePerm.Error())
-			return
-		}
-
-		actions, err := s.ar.ActionsByParams(ctx, params)
+		// Получаем действия из БД
+		actionsEntity, err := s.actionDAO.ByParams(ctx, p.Default)
 		if err != nil {
 			sendGetActionsResult(resCh, nil, "ошибка получения действий")
 			return
 		}
 
-		sendGetActionsResult(resCh, actions, "")
+		// Создаем слайс всех действий (доменов)
+		actions := make([]domain.Action, 0, len(actionsEntity))
+		for _, actionEntity := range actionsEntity {
+			var isDeleted bool
+
+			if actionEntity.IsDeleted != nil {
+				isDeleted = true
+			}
+
+			action := domain.Action{
+				ID:          actionEntity.Id,
+				Name:        actionEntity.Name,
+				Description: actionEntity.Description,
+				CreatedAt:   actionEntity.CreatedAt,
+				IsDeleted:   isDeleted,
+				DeletedAt:   actionEntity.IsDeleted,
+			}
+
+			actions = append(actions, action)
+		}
+
+		resp := make([]domain.Action, 0, len(actions))
+
+		switch p.State {
+		case params.All:
+			copy(resp, actions)
+		case params.Deleted:
+			resp = append(resp, filterDeleted(actions)...)
+		case params.NotDeleted:
+			resp = append(resp, filterNotDeleted(actions)...)
+		}
+
+		sendGetActionsResult(resCh, resp, "")
 		return
 
 	}()
@@ -170,7 +212,7 @@ func (s RBACService) ActionsByParams(ctx context.Context, params params.Default)
 	}
 }
 
-func sendAddActionResult(resCh chan AddedActionResult, resp permissions.AddActionResp, errMsg string) {
+func sendAddActionResult(resCh chan AddedActionResult, resp domain.Action, errMsg string) {
 	var err error
 
 	if errMsg != "" {
@@ -182,7 +224,7 @@ func sendAddActionResult(resCh chan AddedActionResult, resp permissions.AddActio
 		Error:  err,
 	}
 }
-func sendGetActionResult(resCh chan GetActionResult, resp permissions.ActionEntity, errMsg string) {
+func sendGetActionResult(resCh chan GetActionResult, resp domain.Action, errMsg string) {
 	var err error
 
 	if errMsg != "" {
@@ -194,7 +236,7 @@ func sendGetActionResult(resCh chan GetActionResult, resp permissions.ActionEnti
 		Error:  err,
 	}
 }
-func sendGetActionsResult(resCh chan GetActionsResult, resp []permissions.ActionEntity, errMsg string) {
+func sendGetActionsResult(resCh chan GetActionsResult, resp []domain.Action, errMsg string) {
 	var err error
 
 	if errMsg != "" {

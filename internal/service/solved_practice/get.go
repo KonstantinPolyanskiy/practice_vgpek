@@ -4,46 +4,32 @@ import (
 	"context"
 	"fmt"
 	"go.uber.org/zap"
+	"practice_vgpek/internal/model/domain"
+	"practice_vgpek/internal/model/dto"
+	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
-	"practice_vgpek/internal/model/permissions"
-	"practice_vgpek/internal/model/practice/solved"
 )
 
 type GetPracticeResult struct {
-	Practice solved.Entity
+	Practice domain.SolvedPractice
 	Error    error
 }
 
-func (s Service) ById(ctx context.Context, id int) (solved.Entity, error) {
+func (s Service) ById(ctx context.Context, req dto.EntityId) (domain.SolvedPractice, error) {
 	// необходимо проверить id, кто запрашивает
 	// если это студент и его целевая группа совпадает и id верен - отдаем ее,
 	// в ином случае, если доступ есть - отдаем по id
 	resCh := make(chan GetPracticeResult)
 
-	l := s.l.With(
-		zap.String("операция", operation.GetSolvedPracticeInfoById),
-		zap.String("слой", "сервисы"),
+	l := s.logger.With(
+		zap.String(operation.Operation, operation.GetSolvedPracticeInfoById),
+		zap.String(layer.Layer, layer.ServiceLayer),
 	)
 
 	go func() {
 		accountId := ctx.Value("AccountId").(int)
 
-		hasAccess, err := s.am.HasAccess(ctx, accountId, SolvedObjectName, GetActionName)
-		if err != nil {
-			l.Warn("возникла ошибка при проверке прав", zap.Error(err))
-
-			sendGetPracticeResult(resCh, solved.Entity{}, permissions.ErrCheckAccess.Error())
-			return
-		}
-
-		if !hasAccess {
-			l.Warn("возникла ошибка при проверке прав", zap.Error(err))
-
-			sendGetPracticeResult(resCh, solved.Entity{}, permissions.ErrDontHavePerm.Error())
-			return
-		}
-
-		groupMatch, err := s.ipm.IssuedGroupMatch(ctx, accountId, id)
+		groupMatch, err := s.issuedPracticeMediator.IssuedGroupMatch(ctx, accountId, req.Id)
 		if err != nil {
 			l.Warn("возникла ошибка при проверке совпадений")
 		}
@@ -51,13 +37,21 @@ func (s Service) ById(ctx context.Context, id int) (solved.Entity, error) {
 		if !groupMatch {
 			l.Warn("попытка получить практическую студентом с неправильной группой")
 
-			sendGetPracticeResult(resCh, solved.Entity{}, "нет доступа к практическим группы")
+			sendGetPracticeResult(resCh, domain.SolvedPractice{}, "нет доступа к практическим группы")
 			return
 		}
 
-		practice, err := s.spr.ById(ctx, id)
+		solvedPracticeEntity, err := s.solvedPracticeDAO.ById(ctx, req.Id)
 		if err != nil {
-			sendGetPracticeResult(resCh, solved.Entity{}, "нет практического задания с таким id")
+			sendGetPracticeResult(resCh, domain.SolvedPractice{}, "нет практической работы с таким id")
+			return
+		}
+
+		practice, err := s.EntityToDomain(ctx, accountId, solvedPracticeEntity)
+		if err != nil {
+			l.Warn("возникла ошибка при переводе сущности БД в сущность логики", zap.Error(err))
+
+			sendGetPracticeResult(resCh, domain.SolvedPractice{}, "ошибка формирования практической работы")
 			return
 		}
 
@@ -68,14 +62,14 @@ func (s Service) ById(ctx context.Context, id int) (solved.Entity, error) {
 	for {
 		select {
 		case <-ctx.Done():
-			return solved.Entity{}, ctx.Err()
+			return domain.SolvedPractice{}, ctx.Err()
 		case result := <-resCh:
 			return result.Practice, result.Error
 		}
 	}
 }
 
-func sendGetPracticeResult(resCh chan GetPracticeResult, practice solved.Entity, errMsg string) {
+func sendGetPracticeResult(resCh chan GetPracticeResult, practice domain.SolvedPractice, errMsg string) {
 	var err error
 
 	if errMsg != "" {

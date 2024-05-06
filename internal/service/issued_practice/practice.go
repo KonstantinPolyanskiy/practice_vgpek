@@ -4,18 +4,13 @@ import (
 	"context"
 	"go.uber.org/zap"
 	"mime/multipart"
-	"practice_vgpek/internal/model/practice/issued"
+	"practice_vgpek/internal/model/dto"
+	"practice_vgpek/internal/model/entity"
 )
 
-const (
-	AddActionName    = "ADD"
-	GetActionName    = "GET"
-	IssuedObjectName = "ISSUED PRACTICE"
-)
-
-type IssuedPracticeRepository interface {
-	Save(ctx context.Context, dto issued.DTO) (issued.Entity, error)
-	ById(ctx context.Context, id int) (issued.Entity, error)
+type IssuedPracticeDAO interface {
+	Save(ctx context.Context, data dto.NewIssuedPractice) (entity.IssuedPractice, error)
+	ById(ctx context.Context, id int) (entity.IssuedPractice, error)
 }
 
 type PracticeMediator interface {
@@ -32,21 +27,31 @@ type AccountMediator interface {
 	HasAccess(ctx context.Context, roleId int, objectName, actionName string) (bool, error)
 }
 
-type Service struct {
-	l  *zap.Logger
-	r  IssuedPracticeRepository
-	fs PracticeFileStorage
-	am AccountMediator
-	pm PracticeMediator
+type PersonDAO interface {
+	ByAccountId(ctx context.Context, accountId int) (entity.Person, error)
 }
 
-func NewIssuedPracticeService(issuedRepo IssuedPracticeRepository, fileStorage PracticeFileStorage,
+type Service struct {
+	logger *zap.Logger
+
+	issuedPracticeDAO IssuedPracticeDAO
+
+	personDAO PersonDAO
+
+	fileStorage PracticeFileStorage
+
+	accountMediator AccountMediator
+	mediator        PracticeMediator
+}
+
+func New(issuedPracticeDAO IssuedPracticeDAO, personDAO PersonDAO, fileStorage PracticeFileStorage,
 	accountMediator AccountMediator, practiceMediator PracticeMediator, logger *zap.Logger) Service {
 	return Service{
-		l:  logger,
-		r:  issuedRepo,
-		fs: fileStorage,
-		am: accountMediator,
-		pm: practiceMediator,
+		logger:            logger,
+		issuedPracticeDAO: issuedPracticeDAO,
+		fileStorage:       fileStorage,
+		personDAO:         personDAO,
+		accountMediator:   accountMediator,
+		mediator:          practiceMediator,
 	}
 }

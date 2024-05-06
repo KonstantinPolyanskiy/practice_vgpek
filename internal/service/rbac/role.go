@@ -4,106 +4,129 @@ import (
 	"context"
 	"fmt"
 	"go.uber.org/zap"
+	"practice_vgpek/internal/model/domain"
+	"practice_vgpek/internal/model/dto"
+	"practice_vgpek/internal/model/entity"
+	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/params"
-	"practice_vgpek/internal/model/permissions"
+	"time"
 )
 
-type RoleRepository interface {
-	SaveRole(ctx context.Context, savingRole permissions.RoleDTO) (permissions.RoleEntity, error)
-	RoleById(ctx context.Context, id int) (permissions.RoleEntity, error)
-	RolesByParams(ctx context.Context, params params.Default) ([]permissions.RoleEntity, error)
+type RoleDAO interface {
+	Save(ctx context.Context, part dto.NewRBACPart) (entity.Role, error)
+	ById(ctx context.Context, id int) (entity.Role, error)
+	ByParams(ctx context.Context, p params.Default) ([]entity.Role, error)
 }
 
 type AddedRoleResult struct {
-	Role  permissions.AddRoleResp
+	Role  domain.Role
 	Error error
 }
 
 type GetRoleResult struct {
-	Role  permissions.RoleEntity
+	Role  domain.Role
 	Error error
 }
 
 type GetRolesResult struct {
-	Roles []permissions.RoleEntity
+	Roles []domain.Role
 	Error error
 }
 
-func (s RBACService) NewRole(ctx context.Context, addingRole permissions.AddRoleReq) (permissions.AddRoleResp, error) {
+func (s RBACService) NewRole(ctx context.Context, req dto.NewRBACReq) (domain.Role, error) {
 	resCh := make(chan AddedRoleResult)
 
 	l := s.l.With(
-		zap.String("операция", operation.AddRoleOperation),
-		zap.String("слой", "сервисы"),
+		zap.String(operation.Operation, operation.AddRoleOperation),
+		zap.String(layer.Layer, layer.ServiceLayer),
 	)
 
 	go func() {
-		// Проверяем что роль вообще введена
-		if addingRole.Name == "" {
-			l.Warn("пустая роль для добавления")
+		if req.Name == "" {
+			l.Warn("Пустая добавляемая роль")
 
-			sendAddRoleResult(resCh, permissions.AddRoleResp{}, "Пустая роль для добавления")
+			sendAddRoleResult(resCh, domain.Role{}, "Пустая добавляемая роль")
 			return
 		}
 
-		dto := permissions.RoleDTO{
-			Name: addingRole.Name,
+		part := dto.NewRBACPart{
+			Name:        req.Name,
+			Description: req.Description,
+			CreatedAt:   time.Now(),
 		}
 
-		added, err := s.rr.SaveRole(ctx, dto)
+		added, err := s.roleDAO.Save(ctx, part)
 		if err != nil {
-			sendAddRoleResult(resCh, permissions.AddRoleResp{}, "Неизвестная ошибка сохранения роли")
+			sendAddRoleResult(resCh, domain.Role{}, "Неизвестная ошибка сохранения роли")
 			return
 		}
 
-		resp := permissions.AddRoleResp{
-			Name: added.Name,
+		var isDeleted bool
+
+		if added.IsDeleted != nil {
+			isDeleted = true
 		}
 
-		sendAddRoleResult(resCh, resp, "")
+		// Формируем ответ
+		role := domain.Role{
+			ID:          added.Id,
+			Name:        added.Name,
+			Description: added.Description,
+			CreatedAt:   added.CreatedAt,
+			IsDeleted:   isDeleted,
+			DeletedAt:   added.IsDeleted,
+		}
+
+		sendAddRoleResult(resCh, role, "")
 		return
 	}()
 
 	for {
 		select {
 		case <-ctx.Done():
-			return permissions.AddRoleResp{}, ctx.Err()
+			return domain.Role{}, ctx.Err()
 		case result := <-resCh:
 			return result.Role, result.Error
 		}
 	}
 }
 
-func (s RBACService) RoleById(ctx context.Context, id int) (permissions.RoleEntity, error) {
+func (s RBACService) RoleById(ctx context.Context, req dto.EntityId) (domain.Role, error) {
 	resCh := make(chan GetRoleResult)
 
 	l := s.l.With(
-		zap.String("операция", operation.GetRoleOperation),
-		zap.String("слой", "сервисы"),
+		zap.String(operation.Operation, operation.GetRoleOperation),
+		zap.String(layer.Layer, layer.ServiceLayer),
 	)
 
 	go func() {
-		accountId := ctx.Value("AccountId").(int)
-
-		hasAccess, err := s.accountMediator.HasAccess(ctx, accountId, ObjectName, GetActionName)
+		roleEntity, err := s.roleDAO.ById(ctx, req.Id)
 		if err != nil {
-			l.Warn("ошибка проверки доступа", zap.Error(err))
-
-			sendGetRoleResult(resCh, permissions.RoleEntity{}, permissions.ErrCheckAccess.Error())
+			sendGetRoleResult(resCh, domain.Role{}, "Ошибка получения роли")
 			return
 		}
 
-		if !hasAccess {
-			sendGetRoleResult(resCh, permissions.RoleEntity{}, permissions.ErrDontHavePerm.Error())
-			return
+		var isDeleted bool
+
+		if roleEntity.IsDeleted != nil {
+			isDeleted = true
 		}
 
-		role, err := s.rr.RoleById(ctx, id)
-		if err != nil {
-			sendGetRoleResult(resCh, permissions.RoleEntity{}, "Ошибка получения роли")
-			return
+		role := domain.Role{
+			ID:          roleEntity.Id,
+			Name:        roleEntity.Name,
+			Description: roleEntity.Description,
+			CreatedAt:   roleEntity.CreatedAt,
+			IsDeleted:   isDeleted,
+			DeletedAt:   roleEntity.IsDeleted,
 		}
+
+		l.Info("получение роли по id",
+			zap.Int("id роли", role.ID),
+			zap.Time("время создания", role.CreatedAt),
+			zap.Bool("удалено", isDeleted),
+		)
 
 		sendGetRoleResult(resCh, role, "")
 		return
@@ -112,41 +135,57 @@ func (s RBACService) RoleById(ctx context.Context, id int) (permissions.RoleEnti
 	for {
 		select {
 		case <-ctx.Done():
-			return permissions.RoleEntity{}, ctx.Err()
+			return domain.Role{}, ctx.Err()
 		case result := <-resCh:
 			return result.Role, result.Error
 		}
 	}
 }
 
-func (s RBACService) RolesByParams(ctx context.Context, params params.Default) ([]permissions.RoleEntity, error) {
+func (s RBACService) RolesByParams(ctx context.Context, p params.State) ([]domain.Role, error) {
 	resCh := make(chan GetRolesResult)
 
-	l := s.l.With(
-		zap.String("операция", operation.GetRoleOperation),
-		zap.String("слой", "сервисы"),
+	_ = s.l.With(
+		zap.String(operation.Operation, operation.GetRoleOperation),
+		zap.String(layer.Layer, layer.ServiceLayer),
 	)
 
 	go func() {
-		accountId := ctx.Value("AccountId").(int)
-
-		hasAccess, err := s.accountMediator.HasAccess(ctx, accountId, ObjectName, GetActionName)
-		if err != nil {
-			l.Warn("ошибка проверки доступа", zap.Error(err))
-
-			sendGetRolesResult(resCh, nil, permissions.ErrCheckAccess.Error())
-			return
-		}
-
-		if !hasAccess {
-			sendGetRolesResult(resCh, nil, permissions.ErrDontHavePerm.Error())
-			return
-		}
-
-		roles, err := s.rr.RolesByParams(ctx, params)
+		rolesEntity, err := s.roleDAO.ByParams(ctx, p.Default)
 		if err != nil {
 			sendGetRolesResult(resCh, nil, "Ошибка получения ролей")
 			return
+		}
+
+		roles := make([]domain.Role, 0, len(rolesEntity))
+		for _, roleEntity := range rolesEntity {
+			var isDeleted bool
+
+			if roleEntity.IsDeleted != nil {
+				isDeleted = true
+			}
+
+			role := domain.Role{
+				ID:          roleEntity.Id,
+				Name:        roleEntity.Name,
+				Description: roleEntity.Description,
+				CreatedAt:   roleEntity.CreatedAt,
+				IsDeleted:   isDeleted,
+				DeletedAt:   roleEntity.IsDeleted,
+			}
+
+			roles = append(roles, role)
+		}
+
+		resp := make([]domain.Role, 0, len(rolesEntity))
+
+		switch p.State {
+		case params.All:
+			copy(resp, roles)
+		case params.Deleted:
+			resp = append(resp, filterDeleted(roles)...)
+		case params.NotDeleted:
+			resp = append(resp, filterNotDeleted(roles)...)
 		}
 
 		sendGetRolesResult(resCh, roles, "")
@@ -164,7 +203,7 @@ func (s RBACService) RolesByParams(ctx context.Context, params params.Default) (
 	}
 }
 
-func sendAddRoleResult(resCh chan AddedRoleResult, resp permissions.AddRoleResp, errMsg string) {
+func sendAddRoleResult(resCh chan AddedRoleResult, resp domain.Role, errMsg string) {
 	var err error
 
 	if errMsg != "" {
@@ -176,7 +215,7 @@ func sendAddRoleResult(resCh chan AddedRoleResult, resp permissions.AddRoleResp,
 		Error: err,
 	}
 }
-func sendGetRoleResult(resCh chan GetRoleResult, resp permissions.RoleEntity, errMsg string) {
+func sendGetRoleResult(resCh chan GetRoleResult, resp domain.Role, errMsg string) {
 	var err error
 
 	if errMsg != "" {
@@ -188,7 +227,7 @@ func sendGetRoleResult(resCh chan GetRoleResult, resp permissions.RoleEntity, er
 		Error: err,
 	}
 }
-func sendGetRolesResult(resCh chan GetRolesResult, resp []permissions.RoleEntity, errMsg string) {
+func sendGetRolesResult(resCh chan GetRolesResult, resp []domain.Role, errMsg string) {
 	var err error
 
 	if errMsg != "" {
