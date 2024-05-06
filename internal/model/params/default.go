@@ -5,8 +5,15 @@ type Default struct {
 	Offset int `json:"offset"`
 }
 
-type Key struct {
-	IsValid bool `json:"is_valid"`
+const (
+	All        = "all"
+	Deleted    = "deleted"
+	NotDeleted = "not_deleted"
+)
+
+type State struct {
+	// Состояние объекта: удален или нет, или все
+	State string `json:"state"`
 	Default
 }
 
