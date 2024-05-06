@@ -3,55 +3,54 @@ package account
 import (
 	"context"
 	"errors"
-	"practice_vgpek/internal/model/account"
-	"practice_vgpek/internal/model/permissions"
-	"practice_vgpek/internal/model/registration_key"
+	"practice_vgpek/internal/model/domain"
+	"practice_vgpek/internal/model/entity"
 )
 
-type RepositoryKey interface {
-	RegKeyById(ctx context.Context, id int) (registration_key.Entity, error)
+type KeyDAO interface {
+	ById(ctx context.Context, id int) (entity.Key, error)
 }
-type RepositoryAccount interface {
-	AccountById(ctx context.Context, id int) (account.Entity, error)
+type AccountDAO interface {
+	ById(ctx context.Context, id int) (entity.Account, error)
 }
-type RepositoryRole interface {
-	RoleById(ctx context.Context, id int) (permissions.RoleEntity, error)
+type RoleDAO interface {
+	ById(ctx context.Context, id int) (entity.Role, error)
 }
-type RepositoryPermission interface {
-	PermissionsByRoleId(ctx context.Context, roleId int) ([]permissions.PermissionEntity, error)
+type PermissionDAO interface {
+	ByRoleId(ctx context.Context, roleId int) ([]entity.Permissions, error)
 }
 
 type Mediator struct {
-	AccountRepo RepositoryAccount
-	RegKeyRepo  RepositoryKey
-	RoleRepo    RepositoryRole
-	PermRepo    RepositoryPermission
+	AccountDAO AccountDAO
+	KeyDAO     KeyDAO
+	RoleDAO    RoleDAO
+	PermDAO    PermissionDAO
 }
 
-func NewAccountMediator(AccountRepo RepositoryAccount, RegKeyRepo RepositoryKey,
-	RoleRepo RepositoryRole, PermRepo RepositoryPermission) Mediator {
+func NewAccountMediator(AccountDAO AccountDAO, KeyDAO KeyDAO,
+	RoleDAO RoleDAO, PermDAO PermissionDAO) Mediator {
 	return Mediator{
-		AccountRepo: AccountRepo,
-		RegKeyRepo:  RegKeyRepo,
-		RoleRepo:    RoleRepo,
-		PermRepo:    PermRepo,
+		AccountDAO: AccountDAO,
+		KeyDAO:     KeyDAO,
+		RoleDAO:    RoleDAO,
+		PermDAO:    PermDAO,
 	}
 }
 
-func (m Mediator) RoleByAccountId(ctx context.Context, id int) (permissions.RoleEntity, error) {
-	acc, err := m.AccountRepo.AccountById(ctx, id)
+func (m Mediator) RoleByAccountId(ctx context.Context, id int) (entity.Role, error) {
+	acc, err := m.AccountDAO.ById(ctx, id)
 	if err != nil {
-		return permissions.RoleEntity{}, err
+		return entity.Role{}, err
 	}
 
-	key, err := m.RegKeyRepo.RegKeyById(ctx, acc.RegKeyId)
+	key, err := m.KeyDAO.ById(ctx, acc.KeyId)
 	if err != nil {
-		return permissions.RoleEntity{}, err
+		return entity.Role{}, err
 	}
 
-	role, err := m.RoleRepo.RoleById(ctx, key.RoleId)
+	role, err := m.RoleDAO.ById(ctx, key.RoleId)
 	if err != nil {
-		return permissions.RoleEntity{}, err
+		return entity.Role{}, err
 	}
 
 	return role, nil
@@ -65,7 +64,7 @@ func (m Mediator) HasAccess(ctx context.Context, accountId int, objectName, acti
 		return false, err
 	}
 
-	perms, err := m.PermRepo.PermissionsByRoleId(ctx, role.Id)
+	perms, err := m.PermDAO.ByRoleId(ctx, role.Id)
 	if err != nil {
 		return false, err
 	}
@@ -75,13 +74,82 @@ func (m Mediator) HasAccess(ctx context.Context, accountId int, objectName, acti
 	}
 
 	for _, perm := range perms {
-		if perm.ObjectEntity.Name == objectName {
+		if perm.Object.Name == objectName {
 			hasObject = true
 		}
-		if perm.ActionEntity.Name == actionName {
+		if perm.Action.Name == actionName {
 			hasAction = true
 		}
 	}
 
 	return hasAction && hasObject, nil
+}
+
+func (m Mediator) PermByAccountId(ctx context.Context, id int) (domain.RolePermission, error) {
+	acc, err := m.AccountDAO.ById(ctx, id)
+	if err != nil {
+		return domain.RolePermission{}, err
+	}
+
+	role, err := m.RoleDAO.ById(ctx, acc.RoleId)
+	if err != nil {
+		return domain.RolePermission{}, err
+	}
+
+	perms, err := m.PermDAO.ByRoleId(ctx, role.Id)
+	if err != nil {
+		return domain.RolePermission{}, err
+	}
+
+	var rolePerm domain.RolePermission
+
+	var isDeleted bool
+
+	if role.IsDeleted != nil {
+		isDeleted = true
+	}
+
+	domainRole := domain.Role{
+		ID:          role.Id,
+		Name:        role.Name,
+		Description: role.Description,
+		CreatedAt:   role.CreatedAt,
+		IsDeleted:   isDeleted,
+		DeletedAt:   role.IsDeleted,
+	}
+
+	rolePerm.Role = domainRole
+
+	for _, perm := range perms {
+		var isDeleted bool
+
+		if perm.Action.IsDeleted != nil {
+			isDeleted = true
+		}
+
+		domainAction := domain.Action{
+			ID:          perm.Action.Id,
+			Name:        perm.Action.Name,
+			Description: perm.Action.Description,
+			CreatedAt:   perm.Action.CreatedAt,
+			IsDeleted:   isDeleted,
+			DeletedAt:   perm.Action.IsDeleted,
+		}
+
+		domainObject := domain.Object{
+			ID:          perm.Object.Id,
+			Name:        perm.Object.Name,
+			Description: perm.Object.Description,
+			CreatedAt:   perm.Object.CreatedAt,
+			IsDeleted:   isDeleted,
+			DeletedAt:   perm.Object.IsDeleted,
+		}
+
+		rolePerm.Object = domain.ObjectWithActions{
+			Object:  domainObject,
+			Actions: append(rolePerm.Object.Actions, domainAction),
+		}
+	}
+
+	return rolePerm, nil
 }
