@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap"
 	"log"
 	"os"
-	"practice_vgpek/internal/model/registration_key"
+	"practice_vgpek/internal/model/entity"
 	"practice_vgpek/pkg/postgres"
 	"practice_vgpek/pkg/rndutils"
 	"time"
@@ -165,7 +165,7 @@ func (u InitUtils) createAdminKey(usages int) {
 		log.Printf("Возникла ошибка %v при создании ключа доступа", err)
 	}
 
-	savedKey, err := pgx.CollectOneRow(row, pgx.RowToStructByName[registration_key.Entity])
+	savedKey, err := pgx.CollectOneRow(row, pgx.RowToStructByName[entity.Key])
 	if err != nil {
 		log.Printf("Возникла ошибка %v при создании ключа доступа", err)
 	}
