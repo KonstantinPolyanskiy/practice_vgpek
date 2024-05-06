@@ -113,9 +113,9 @@ func (s Service) NewUser(ctx context.Context, registration dto.RegistrationReq) 
 				IsActive:       accountEntity.IsActive,
 				DeactivateTime: accountEntity.DeactivateTime,
 				RoleName:       roleEntity.Name,
-				RoleId:         0,
-				KeyId:          0,
-				CreatedAt:      time.Time{},
+				RoleId:         roleEntity.Id,
+				KeyId:          key.Id,
+				CreatedAt:      accountEntity.CreatedAt,
 			},
 		}
 
