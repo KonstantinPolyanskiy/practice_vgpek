@@ -10,7 +10,6 @@ import (
 	"practice_vgpek/internal/model/dto"
 	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
-	"practice_vgpek/internal/model/permissions"
 	"practice_vgpek/internal/model/transport/rest"
 	"practice_vgpek/pkg/apperr"
 	"practice_vgpek/pkg/queryutils"
@@ -18,17 +17,6 @@ import (
 	"time"
 )
 
-// @Summary		Создание объекта действия
-// @Security		ApiKeyAuth
-// @Tags			Объект действия
-// @Description	Создает объект действия в системе
-// @ID				create-object
-// @Accept			json
-// @Produce		json
-// @Param			input	body		permissions.AddObjectReq	true	"Поля необходимые для создания объекта"
-// @Success		200		{object}	permissions.AddObjectResp	"Возвращает название созданной роли"
-// @Failure		default	{object}	apperr.AppError
-// @Router			/object	 [post]
 func (h AccessHandler) AddObject(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
@@ -75,17 +63,6 @@ func (h AccessHandler) AddObject(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// @Summary		Получение объекта действия
-// @Security		ApiKeyAuth
-// @Tags			Объект действия
-// @Description	Получение объекта действия по id
-// @ID				get-object
-// @Accept			json
-// @Produce		json
-// @Param			id		query		int							true	"ID объекта"
-// @Success		200		{object}	permissions.GetObjectResp	"Возвращает id и название объекта"
-// @Failure		default	{object}	apperr.AppError
-// @Router			/object	 [get]
 func (h AccessHandler) GetObject(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
@@ -118,10 +95,6 @@ func (h AccessHandler) GetObject(w http.ResponseWriter, r *http.Request) {
 		} else if err != nil {
 			code := http.StatusInternalServerError
 
-			if errors.Is(err, permissions.ErrDontHavePerm) {
-				code = http.StatusForbidden
-			}
-
 			apperr.New(w, r, code, apperr.AppError{
 				Action: operation.GetObjectOperation,
 				Error:  err.Error(),
@@ -136,18 +109,6 @@ func (h AccessHandler) GetObject(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// @Summary		Получение объектов по параметрам
-// @Security		ApiKeyAuth
-// @Tags			Объект действия
-// @Description	Получение объектов
-// @ID				get-objects
-// @Accept			json
-// @Produce		json
-// @Param			limit			query		int							false	"Сколько выдать ролей"
-// @Param			offset			query		int							false	"С какой позиции выдать роли"
-// @Success		200				{object}	permissions.GetObjectsResp	"Возвращает id и названия объектов"
-// @Failure		default			{object}	apperr.AppError
-// @Router			/object/params	 [get]
 func (h AccessHandler) GetObjects(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3000*time.Second)
 	defer cancel()
@@ -180,10 +141,6 @@ func (h AccessHandler) GetObjects(w http.ResponseWriter, r *http.Request) {
 		return
 	} else if err != nil {
 		code := http.StatusInternalServerError
-
-		if errors.Is(err, permissions.ErrDontHavePerm) {
-			code = http.StatusForbidden
-		}
 
 		apperr.New(w, r, code, apperr.AppError{
 			Action: operation.GetObjectsOperation,

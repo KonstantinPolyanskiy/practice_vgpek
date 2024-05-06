@@ -12,7 +12,6 @@ import (
 	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/params"
-	"practice_vgpek/internal/model/permissions"
 	"practice_vgpek/internal/model/transport/rest"
 	"practice_vgpek/pkg/apiutils"
 	"practice_vgpek/pkg/apperr"
@@ -100,10 +99,6 @@ func (h Handler) Download(w http.ResponseWriter, r *http.Request) {
 			return
 		} else {
 			code := http.StatusInternalServerError
-
-			if errors.Is(err, permissions.ErrDontHavePerm) {
-				code = http.StatusForbidden
-			}
 
 			apperr.New(w, r, code, apperr.AppError{
 				Action: operation.DownloadIssuedPractice,
