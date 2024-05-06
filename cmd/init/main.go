@@ -66,13 +66,13 @@ func main() {
 
 	iu := NewInitUtils(db, roles, actions, objects)
 
-	/*iu.createBaseRoles()
+	iu.createBaseRoles()
 	iu.createBaseActions()
 	iu.createBaseObjects()
 
 	for i := 1; i <= 5; i++ {
 		iu.setAdminPerm(i)
-	}*/
+	}
 
 	iu.createAdminKey(1)
 }
