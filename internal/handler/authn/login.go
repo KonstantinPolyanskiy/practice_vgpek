@@ -38,7 +38,7 @@ func (h Handler) Login(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&cred)
 	if err != nil {
-		l.Warn(apperr.DecodeJSONErr, zap.Error(err))
+		l.Warn(operation.DecodeError, zap.Error(err))
 
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
 			Action: operation.LoginOperation,
