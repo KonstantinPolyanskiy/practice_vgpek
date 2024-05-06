@@ -1,27 +1,27 @@
 -- +goose Up
 -- +goose StatementBegin
 SELECT 'up SQL query';
-CREATE TABLE internal_role (
+CREATE TABLE IF NOT EXISTS internal_role (
                                internal_role_id serial PRIMARY KEY NOT NULL,
                                role_name varchar NOT NULL UNIQUE
 );
-CREATE TABLE internal_action (
+CREATE TABLE IF NOT EXISTS internal_action (
                                  internal_action_id serial PRIMARY KEY NOT NULL,
                                  internal_action_name varchar NOT NULL
 );
-CREATE TABLE internal_object (
+CREATE TABLE IF NOT EXISTS internal_object (
                                  internal_object_id serial PRIMARY KEY NOT NULL,
                                  internal_object_name varchar NOT NULL
 );
 
-CREATE TABLE role_permission (
+CREATE TABLE IF NOT EXISTS  role_permission (
                                  role_perm_id serial PRIMARY KEY NOT NULL,
                                  internal_role_id integer REFERENCES internal_role(internal_role_id),
                                  internal_action_id integer REFERENCES internal_action(internal_action_id),
                                  internal_object_id integer REFERENCES internal_object(internal_object_id)
 );
 
-ALTER TABLE account ADD internal_role_id integer references internal_role(internal_role_id);
+ALTER TABLE account ADD IF NOT EXISTS internal_role_id integer references internal_role(internal_role_id);
 -- +goose StatementEnd
 
 -- +goose Down

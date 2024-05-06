@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 SELECT 'up SQL query';
-CREATE TABLE issued_practice (
+CREATE TABLE IF NOT EXISTS issued_practice (
     issued_practice_id SERIAL PRIMARY KEY NOT NULL,
     account_id INTEGER NOT NULL REFERENCES account(account_id),
     target_groups VARCHAR[] NOT NULL,

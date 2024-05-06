@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 SELECT 'up SQL query';
-ALTER TABLE registration_key ADD group_name varchar DEFAULT 'unknown' NOT NULL;
+ALTER TABLE registration_key ADD IF NOT EXISTS group_name varchar DEFAULT 'unknown' NOT NULL;
 -- +goose StatementEnd
 
 -- +goose Down

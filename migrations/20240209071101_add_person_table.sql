@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 SELECT 'up SQL query';
-CREATE TABLE person (
+CREATE TABLE IF NOT EXISTS person (
     person_uuid uuid PRIMARY KEY NOT NULL,
     account_id integer REFERENCES account (account_id),
     first_name varchar NOT NULL,

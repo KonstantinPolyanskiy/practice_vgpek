@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 SELECT 'up SQL query';
-CREATE TABLE registration_key (
+CREATE TABLE  IF NOT EXISTS registration_key (
     reg_key_id serial PRIMARY KEY NOT NULL,
     internal_role_id integer NOT NULL REFERENCES internal_role(internal_role_id),
     body_key varchar NOT NULL,
@@ -11,7 +11,7 @@ CREATE TABLE registration_key (
     is_valid boolean NOT NULL DEFAULT true,
     invalidation_time timestamp DEFAULT NULL
 );
-ALTER TABLE account ADD reg_key_id integer REFERENCES registration_key(reg_key_id);
+ALTER TABLE account  ADD IF NOT EXISTS reg_key_id integer REFERENCES registration_key(reg_key_id);
 -- +goose StatementEnd
 
 -- +goose Down

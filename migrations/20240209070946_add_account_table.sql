@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 SELECT 'up SQL query';
-CREATE TABLE account (
+CREATE TABLE IF NOT EXISTS account (
                          account_id serial PRIMARY KEY NOT NULL,
                          login varchar(16) NOT NULL UNIQUE,
                          password_hash varchar NOT NULL,
