@@ -10,23 +10,11 @@ import (
 	"practice_vgpek/internal/model/dto"
 	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
-	"practice_vgpek/internal/model/permissions"
 	"practice_vgpek/internal/model/transport/rest"
 	"practice_vgpek/pkg/apperr"
 	"time"
 )
 
-// @Summary		удаление ключа регистрации
-// @Security		ApiKeyAuth
-// @Tags			ключ регистрации
-// @Description	Удаляет ключ регистрации
-// @ID				delete-key
-// @Accept			json
-// @Produce		json
-// @Param			input	body		registration_key.DeleteReq	true	"Поля необходимые для создания ключа"
-// @Success		200		{object}	registration_key.DeleteResp	"Возвращает id удаленного ключа"
-// @Failure		default	{object}	apperr.AppError
-// @Router			/key	 [delete]
 func (h Handler) DeleteKey(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
@@ -65,10 +53,6 @@ func (h Handler) DeleteKey(w http.ResponseWriter, r *http.Request) {
 			return
 		} else {
 			status := http.StatusInternalServerError
-
-			if errors.Is(err, permissions.ErrDontHavePerm) {
-				status = http.StatusForbidden
-			}
 
 			apperr.New(w, r, status, apperr.AppError{
 				Action: operation.InvalidateKeyOperation,

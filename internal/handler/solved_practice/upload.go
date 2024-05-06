@@ -9,7 +9,6 @@ import (
 	"practice_vgpek/internal/model/dto"
 	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
-	"practice_vgpek/internal/model/permissions"
 	"practice_vgpek/internal/model/transport/rest"
 	"practice_vgpek/pkg/apperr"
 	"strconv"
@@ -81,10 +80,6 @@ func (h Handler) Upload(w http.ResponseWriter, r *http.Request) {
 			return
 		} else if err != nil {
 			code := http.StatusInternalServerError
-
-			if errors.Is(err, permissions.ErrDontHavePerm) {
-				code = http.StatusForbidden
-			}
 
 			apperr.New(w, r, code, apperr.AppError{
 				Action: operation.UploadSolvedPracticeOperation,

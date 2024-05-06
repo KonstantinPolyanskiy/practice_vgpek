@@ -10,7 +10,6 @@ import (
 	"practice_vgpek/internal/model/dto"
 	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
-	"practice_vgpek/internal/model/permissions"
 	"practice_vgpek/internal/model/transport/rest"
 	"practice_vgpek/pkg/apperr"
 	"practice_vgpek/pkg/queryutils"
@@ -18,17 +17,6 @@ import (
 	"time"
 )
 
-// @Summary		Создание действия
-// @Security		ApiKeyAuth
-// @Tags			Действие
-// @Description	Создает действие в системе
-// @ID				create-action
-// @Accept			json
-// @Produce		json
-// @Param			input	body		permissions.AddActionReq	true	"Поля необходимые для создания действия"
-// @Success		200		{object}	permissions.AddObjectResp	"Возвращает название созданного действия"
-// @Failure		default	{object}	apperr.AppError
-// @Router			/action	 [post]
 func (h AccessHandler) AddAction(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
@@ -76,17 +64,6 @@ func (h AccessHandler) AddAction(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// @Summary		Получение действия
-// @Security		ApiKeyAuth
-// @Tags			Действие
-// @Description	Получение объекта действия по id
-// @ID				get-action
-// @Accept			json
-// @Produce		json
-// @Param			id		query		int							true	"ID действия"
-// @Success		200		{object}	permissions.GetActionResp	"Возвращает id и название действия"
-// @Failure		default	{object}	apperr.AppError
-// @Router			/object	 [get]
 func (h AccessHandler) GetAction(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3000*time.Second)
 	defer cancel()
@@ -123,10 +100,6 @@ func (h AccessHandler) GetAction(w http.ResponseWriter, r *http.Request) {
 		} else {
 			code := http.StatusInternalServerError
 
-			if errors.Is(err, permissions.ErrDontHavePerm) {
-				code = http.StatusForbidden
-			}
-
 			apperr.New(w, r, code, apperr.AppError{
 				Action: operation.GetActionOperation,
 				Error:  err.Error(),
@@ -141,18 +114,6 @@ func (h AccessHandler) GetAction(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// @Summary		Получение действий по параметрам
-// @Security		ApiKeyAuth
-// @Tags			Действие
-// @Description	Получение действий
-// @ID				get-actions
-// @Accept			json
-// @Produce		json
-// @Param			limit			query		int							false	"Сколько выдать действия"
-// @Param			offset			query		int							false	"С какой позиции выдать действия"
-// @Success		200				{object}	permissions.GetActionsResp	"Возвращает id и названия действия"
-// @Failure		default			{object}	apperr.AppError
-// @Router			/action/params	 [get]
 func (h AccessHandler) GetActions(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
@@ -185,10 +146,6 @@ func (h AccessHandler) GetActions(w http.ResponseWriter, r *http.Request) {
 		return
 	} else if err != nil {
 		code := http.StatusInternalServerError
-
-		if errors.Is(err, permissions.ErrDontHavePerm) {
-			code = http.StatusForbidden
-		}
 
 		apperr.New(w, r, code, apperr.AppError{
 			Action: operation.GetActionsOperation,

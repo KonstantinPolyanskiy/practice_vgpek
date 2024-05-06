@@ -10,7 +10,6 @@ import (
 	"practice_vgpek/internal/model/dto"
 	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
-	"practice_vgpek/internal/model/permissions"
 	"practice_vgpek/internal/model/transport/rest"
 	"practice_vgpek/pkg/apperr"
 	"time"
@@ -53,10 +52,6 @@ func (h Handler) SetMark(w http.ResponseWriter, r *http.Request) {
 			return
 		} else {
 			status := http.StatusInternalServerError
-
-			if errors.Is(err, permissions.ErrDontHavePerm) {
-				status = http.StatusForbidden
-			}
 
 			apperr.New(w, r, status, apperr.AppError{
 				Action: operation.SetMarkSolvedPractice,

@@ -54,10 +54,6 @@ func (h Handler) PracticeById(w http.ResponseWriter, r *http.Request) {
 		} else {
 			code := http.StatusInternalServerError
 
-			if errors.Is(err, permissions.ErrDontHavePerm) {
-				code = http.StatusForbidden
-			}
-
 			apperr.New(w, r, code, apperr.AppError{
 				Action: operation.GetIssuedPracticeInfoById,
 				Error:  err.Error(),

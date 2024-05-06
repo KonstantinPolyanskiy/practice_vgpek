@@ -14,17 +14,6 @@ import (
 	"time"
 )
 
-// @Summary		Назначение доступов
-// @Security		ApiKeyAuth
-// @Tags			доступы
-// @Description	Назначает права действия
-// @ID				add-perm
-// @Accept			json
-// @Produce		json
-// @Param			input			body		permissions.AddPermReq	true	"Поля назначении у роли к объекту действий"
-// @Success		200				{object}	permissions.AddPermResp	"Возвращает id роли, id объекта и id действий, к ним добавленные"
-// @Failure		default			{object}	apperr.AppError
-// @Router			/permissions	 [post]
 func (h AccessHandler) AddPermission(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()

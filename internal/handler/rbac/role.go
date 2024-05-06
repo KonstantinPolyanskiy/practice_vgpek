@@ -10,7 +10,6 @@ import (
 	"practice_vgpek/internal/model/dto"
 	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
-	"practice_vgpek/internal/model/permissions"
 	"practice_vgpek/internal/model/transport/rest"
 	"practice_vgpek/pkg/apperr"
 	"practice_vgpek/pkg/queryutils"
@@ -18,17 +17,6 @@ import (
 	"time"
 )
 
-// @Summary		Создание роли
-// @Security		ApiKeyAuth
-// @Tags			Роль
-// @Description	Создает роль в системе
-// @ID				create-role
-// @Accept			json
-// @Produce		json
-// @Param			input	body		permissions.AddRoleReq	true	"Поля необходимые для создания роли"
-// @Success		200		{object}	permissions.AddRoleResp	"Возвращает название созданной роли"
-// @Failure		default	{object}	apperr.AppError
-// @Router			/role	 [post]
 func (h AccessHandler) AddRole(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
@@ -75,17 +63,6 @@ func (h AccessHandler) AddRole(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// @Summary		Получение роли
-// @Security		ApiKeyAuth
-// @Tags			Роль
-// @Description	Получение роли по id
-// @ID				get-role
-// @Accept			json
-// @Produce		json
-// @Param			id		query		int						true	"ID ключа"
-// @Success		200		{object}	permissions.GetRoleResp	"Возвращает id и название роли"
-// @Failure		default	{object}	apperr.AppError
-// @Router			/key	 [get]
 func (h AccessHandler) GetRole(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3000*time.Second)
 	defer cancel()
@@ -118,10 +95,6 @@ func (h AccessHandler) GetRole(w http.ResponseWriter, r *http.Request) {
 		} else if err != nil {
 			code := http.StatusInternalServerError
 
-			if errors.Is(err, permissions.ErrDontHavePerm) {
-				code = http.StatusForbidden
-			}
-
 			apperr.New(w, r, code, apperr.AppError{
 				Action: operation.GetRoleOperation,
 				Error:  err.Error(),
@@ -136,19 +109,6 @@ func (h AccessHandler) GetRole(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// @Summary		Получение ролей по параметрам
-// @Security		ApiKeyAuth
-// @Tags			Роль
-// @Description	Получение ролей
-// @ID				get-roles
-// @Accept			json
-// @Produce		json
-// @Param			limit			query		int							false	"Сколько выдать ролей"
-// @Param			offset			query		int							false	"С какой позиции выдать роли"
-// @Param			id				query		int							true	"ID ключа"
-// @Success		200				{object}	permissions.GetRolesResp	"Возвращает id и названия ролей"
-// @Failure		default			{object}	apperr.AppError
-// @Router			/role/params	 [get]
 func (h AccessHandler) GetRoles(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
@@ -182,10 +142,6 @@ func (h AccessHandler) GetRoles(w http.ResponseWriter, r *http.Request) {
 			return
 		} else {
 			code := http.StatusInternalServerError
-
-			if errors.Is(err, permissions.ErrDontHavePerm) {
-				code = http.StatusForbidden
-			}
 
 			apperr.New(w, r, code, apperr.AppError{
 				Action: operation.GetRolesOperation,

@@ -8,26 +8,12 @@ import (
 	"net/http"
 	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
-	"practice_vgpek/internal/model/permissions"
 	"practice_vgpek/internal/model/transport/rest"
 	"practice_vgpek/pkg/apperr"
 	"practice_vgpek/pkg/queryutils"
 	"time"
 )
 
-// @Summary		получение ключей регистрации
-// @Security		ApiKeyAuth
-// @Tags			ключ регистрации
-// @Description	Удаляет ключ регистрации
-// @ID				get-key
-// @Accept			json
-// @Produce		json
-// @Param			limit	query		int							false	"Сколько выдать ключей"
-// @Param			offset	query		int							false	"С какой позиции выдать ключи"
-// @Param			valid	query		bool						false	"выдавать ключи валидные/невалидные"
-// @Success		200		{object}	registration_key.DeleteResp	"Возвращает id удаленного ключа"
-// @Failure		default	{object}	apperr.AppError
-// @Router			/key	 [get]
 func (h Handler) GetKeys(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
@@ -68,10 +54,6 @@ func (h Handler) GetKeys(w http.ResponseWriter, r *http.Request) {
 			return
 		} else {
 			code := http.StatusInternalServerError
-
-			if errors.Is(err, permissions.ErrDontHavePerm) {
-				code = http.StatusForbidden
-			}
 
 			apperr.New(w, r, code, apperr.AppError{
 				Action: operation.GetKeysOperation,
