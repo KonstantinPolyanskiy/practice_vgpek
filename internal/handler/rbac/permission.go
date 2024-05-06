@@ -7,8 +7,9 @@ import (
 	"github.com/go-chi/render"
 	"go.uber.org/zap"
 	"net/http"
+	"practice_vgpek/internal/model/dto"
+	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
-	"practice_vgpek/internal/model/permissions"
 	"practice_vgpek/pkg/apperr"
 	"time"
 )
@@ -28,17 +29,17 @@ func (h AccessHandler) AddPermission(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 
-	var addingPerm permissions.AddPermReq
+	var addingPerm dto.SetPermissionReq
 
 	l := h.l.With(
-		zap.String("адрес", r.RequestURI),
-		zap.String("операция", operation.AddPermissionOperation),
-		zap.String("слой", "http обработчики"),
+		zap.String(layer.Endpoint, r.RequestURI),
+		zap.String(operation.Operation, operation.AddPermissionOperation),
+		zap.String(layer.Layer, layer.HTTPLayer),
 	)
 
 	err := json.NewDecoder(r.Body).Decode(&addingPerm)
 	if err != nil {
-		l.Warn("ошибка декодирования данных", zap.Error(err))
+		l.Warn(operation.DecodeError, zap.Error(err))
 
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
 			Action: operation.AddPermissionOperation,
@@ -47,7 +48,7 @@ func (h AccessHandler) AddPermission(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = h.s.NewPermission(ctx, addingPerm)
+	err = h.s.NewPermission(ctx, addingPerm)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
@@ -66,6 +67,6 @@ func (h AccessHandler) AddPermission(w http.ResponseWriter, r *http.Request) {
 
 	l.Info("доступы успешно назначены")
 
-	render.JSON(w, r, permissions.AddPermResp{AddPermReq: addingPerm})
+	render.JSON(w, r, map[string]string{"result": "ok"})
 	return
 }

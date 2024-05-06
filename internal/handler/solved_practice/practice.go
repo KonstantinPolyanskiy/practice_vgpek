@@ -3,14 +3,15 @@ package solved_practice
 import (
 	"context"
 	"go.uber.org/zap"
-	"practice_vgpek/internal/model/practice/solved"
+	"practice_vgpek/internal/model/domain"
+	"practice_vgpek/internal/model/dto"
 )
 
 type SolvedPracticeService interface {
-	Save(ctx context.Context, req solved.UploadReq) (solved.UploadResp, error)
-	SetMark(ctx context.Context, req solved.SetMarkReq) (solved.SetMarkResp, error)
+	Save(ctx context.Context, req dto.NewSolvedPracticeReq) (domain.SolvedPractice, error)
+	SetMark(ctx context.Context, req dto.MarkPracticeReq) (domain.SolvedPractice, error)
 
-	ById(ctx context.Context, id int) (solved.Entity, error)
+	ById(ctx context.Context, req dto.EntityId) (domain.SolvedPractice, error)
 }
 
 type Handler struct {

@@ -6,9 +6,11 @@ import (
 	"github.com/go-chi/render"
 	"go.uber.org/zap"
 	"net/http"
+	"practice_vgpek/internal/model/dto"
+	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/permissions"
-	"practice_vgpek/internal/model/practice/solved"
+	"practice_vgpek/internal/model/transport/rest"
 	"practice_vgpek/pkg/apperr"
 	"strconv"
 	"time"
@@ -19,9 +21,9 @@ func (h Handler) Upload(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	l := h.l.With(
-		zap.String("адрес", r.RequestURI),
-		zap.String("операция", operation.UploadSolvedPracticeOperation),
-		zap.String("слой", "http обработчики"),
+		zap.String(layer.Endpoint, r.RequestURI),
+		zap.String(operation.Operation, operation.UploadSolvedPracticeOperation),
+		zap.String(layer.Layer, layer.HTTPLayer),
 	)
 
 	// Максимальный размер файла - 10 мб
@@ -59,16 +61,17 @@ func (h Handler) Upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req := solved.UploadReq{
-		IssuedPracticeId: issuedId,
-		File:             &file,
+	req := dto.NewSolvedPracticeReq{
+		PerformedAccountId: ctx.Value("AccountId").(int),
+		IssuedPracticeId:   issuedId,
+		File:               &file,
 	}
 
 	l.Info("попытка загрузить практическое задание",
 		zap.Int("практическая работа", req.IssuedPracticeId),
 	)
 
-	resp, err := h.s.Save(ctx, req)
+	practice, err := h.s.Save(ctx, req)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
@@ -93,6 +96,6 @@ func (h Handler) Upload(w http.ResponseWriter, r *http.Request) {
 
 	l.Info("практическая работа успешно загружена")
 
-	render.JSON(w, r, resp)
+	render.JSON(w, r, rest.SolvedPractice{}.DomainToResponse(practice))
 	return
 }

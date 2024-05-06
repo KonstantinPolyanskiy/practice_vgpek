@@ -3,12 +3,13 @@ package issued_practice
 import (
 	"context"
 	"go.uber.org/zap"
-	"practice_vgpek/internal/model/practice/issued"
+	"practice_vgpek/internal/model/domain"
+	"practice_vgpek/internal/model/dto"
 )
 
 type IssuedPracticeService interface {
-	Save(ctx context.Context, req issued.UploadReq) (issued.UploadResp, error)
-	ById(ctx context.Context, id int) (issued.Entity, error)
+	Save(ctx context.Context, req dto.NewIssuedPracticeReq) (domain.IssuedPractice, error)
+	ById(ctx context.Context, req dto.EntityId) (domain.IssuedPractice, error)
 }
 
 type Handler struct {

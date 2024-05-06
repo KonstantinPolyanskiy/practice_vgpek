@@ -3,25 +3,25 @@ package rbac
 import (
 	"context"
 	"go.uber.org/zap"
+	"practice_vgpek/internal/model/domain"
+	"practice_vgpek/internal/model/dto"
 	"practice_vgpek/internal/model/params"
-	"practice_vgpek/internal/model/permissions"
 )
 
 type RBACService interface {
-	NewAction(ctx context.Context, addingAction permissions.AddActionReq) (permissions.AddActionResp, error)
+	ActionById(ctx context.Context, req dto.EntityId) (domain.Action, error)
+	ActionsByParams(ctx context.Context, params params.State) ([]domain.Action, error)
 
-	ActionById(ctx context.Context, req permissions.GetActionReq) (permissions.ActionEntity, error)
-	ActionsByParams(ctx context.Context, params params.Default) ([]permissions.ActionEntity, error)
+	ObjectById(ctx context.Context, req dto.EntityId) (domain.Object, error)
+	ObjectsByParams(ctx context.Context, params params.State) ([]domain.Object, error)
 
-	ObjectById(ctx context.Context, id int) (permissions.ObjectEntity, error)
-	ObjectsByParams(ctx context.Context, params params.Default) ([]permissions.ObjectEntity, error)
+	RoleById(ctx context.Context, req dto.EntityId) (domain.Role, error)
+	RolesByParams(ctx context.Context, params params.State) ([]domain.Role, error)
 
-	RoleById(ctx context.Context, id int) (permissions.RoleEntity, error)
-	RolesByParams(ctx context.Context, params params.Default) ([]permissions.RoleEntity, error)
-
-	NewObject(ctx context.Context, addingObject permissions.AddObjectReq) (permissions.AddObjectResp, error)
-	NewRole(ctx context.Context, addingRole permissions.AddRoleReq) (permissions.AddRoleResp, error)
-	NewPermission(ctx context.Context, addingPermission permissions.AddPermReq) (permissions.AddPermResp, error)
+	NewAction(ctx context.Context, addingAction dto.NewRBACReq) (domain.Action, error)
+	NewObject(ctx context.Context, addingObject dto.NewRBACReq) (domain.Object, error)
+	NewRole(ctx context.Context, addingRole dto.NewRBACReq) (domain.Role, error)
+	NewPermission(ctx context.Context, req dto.SetPermissionReq) error
 }
 
 type AccessHandler struct {

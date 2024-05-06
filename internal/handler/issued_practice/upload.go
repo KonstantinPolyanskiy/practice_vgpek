@@ -6,9 +6,11 @@ import (
 	"github.com/go-chi/render"
 	"go.uber.org/zap"
 	"net/http"
+	"practice_vgpek/internal/model/dto"
+	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/permissions"
-	"practice_vgpek/internal/model/practice/issued"
+	"practice_vgpek/internal/model/transport/rest"
 	"practice_vgpek/pkg/apperr"
 	"time"
 )
@@ -18,9 +20,9 @@ func (h Handler) Upload(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	l := h.l.With(
-		zap.String("адрес", r.RequestURI),
-		zap.String("операция", operation.UploadIssuedPracticeOperation),
-		zap.String("слой", "http обработчики"),
+		zap.String(layer.Endpoint, r.RequestURI),
+		zap.String(operation.Operation, operation.UploadIssuedPracticeOperation),
+		zap.String(layer.Layer, layer.HTTPLayer),
 	)
 
 	// Максимальный размер файла - 10 мб
@@ -47,7 +49,7 @@ func (h Handler) Upload(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	req := issued.UploadReq{
+	req := dto.NewIssuedPracticeReq{
 		TargetGroups: r.MultipartForm.Value["target_groups"],
 		Title:        r.FormValue("title"),
 		Theme:        r.FormValue("theme"),
@@ -60,7 +62,7 @@ func (h Handler) Upload(w http.ResponseWriter, r *http.Request) {
 		zap.Strings("целевые группы", req.TargetGroups),
 	)
 
-	resp, err := h.s.Save(ctx, req)
+	practice, err := h.s.Save(ctx, req)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
@@ -84,6 +86,6 @@ func (h Handler) Upload(w http.ResponseWriter, r *http.Request) {
 	}
 	l.Info("практическое задание успешно загружено")
 
-	render.JSON(w, r, resp)
+	render.JSON(w, r, rest.IssuedPractice{}.DomainToResponse(practice))
 	return
 }

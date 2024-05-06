@@ -7,9 +7,11 @@ import (
 	"github.com/go-chi/render"
 	"go.uber.org/zap"
 	"net/http"
+	"practice_vgpek/internal/model/dto"
+	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/permissions"
-	"practice_vgpek/internal/model/practice/solved"
+	"practice_vgpek/internal/model/transport/rest"
 	"practice_vgpek/pkg/apperr"
 	"time"
 )
@@ -19,16 +21,15 @@ func (h Handler) SetMark(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	l := h.l.With(
-		zap.String("адрес", r.RequestURI),
-		zap.String("операция", operation.SetMarkSolvedPractice),
-		zap.String("слой", "http обработчики"),
+		zap.String(layer.Endpoint, r.RequestURI),
+		zap.String(operation.Operation, operation.SetMarkSolvedPractice),
+		zap.String(layer.Layer, layer.HTTPLayer),
 	)
 
-	var markBody solved.SetMarkReq
-
+	var markBody dto.MarkPracticeReq
 	err := json.NewDecoder(r.Body).Decode(&markBody)
 	if err != nil {
-		l.Warn("ошибка декодирования данных", zap.Error(err))
+		l.Warn(operation.DecodeError, zap.Error(err))
 
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
 			Action: operation.SetMarkSolvedPractice,
@@ -67,6 +68,6 @@ func (h Handler) SetMark(w http.ResponseWriter, r *http.Request) {
 
 	l.Info("оценка успешно выставлена", zap.Int("id работы", practice.Mark))
 
-	render.JSON(w, r, practice)
+	render.JSON(w, r, rest.SolvedPractice{}.DomainToResponse(practice))
 	return
 }

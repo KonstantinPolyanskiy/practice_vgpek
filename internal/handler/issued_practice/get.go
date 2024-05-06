@@ -6,13 +6,14 @@ import (
 	"github.com/go-chi/render"
 	"go.uber.org/zap"
 	"io"
-	"log"
 	"net/http"
 	"os"
+	"practice_vgpek/internal/model/dto"
+	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/params"
 	"practice_vgpek/internal/model/permissions"
-	"practice_vgpek/internal/model/practice/issued"
+	"practice_vgpek/internal/model/transport/rest"
 	"practice_vgpek/pkg/apiutils"
 	"practice_vgpek/pkg/apperr"
 	"practice_vgpek/pkg/queryutils"
@@ -26,9 +27,9 @@ func (h Handler) PracticeById(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	l := h.l.With(
-		zap.String("адрес", r.RequestURI),
-		zap.String("операция", operation.GetIssuedPracticeInfoById),
-		zap.String("слой", "http обработчики"),
+		zap.String(layer.Endpoint, r.RequestURI),
+		zap.String(operation.Operation, operation.GetIssuedPracticeInfoById),
+		zap.String(layer.Layer, layer.HTTPLayer),
 	)
 
 	id, err := strconv.Atoi(r.URL.Query().Get("id"))
@@ -42,7 +43,7 @@ func (h Handler) PracticeById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	practice, err := h.s.ById(ctx, id)
+	practice, err := h.s.ById(ctx, dto.EntityId{Id: id})
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
@@ -68,14 +69,7 @@ func (h Handler) PracticeById(w http.ResponseWriter, r *http.Request) {
 	link := r.Host + r.URL.String()
 	link = strings.Replace(link, "?", "/download?", 1)
 
-	render.JSON(w, r, issued.GetPracticeResp{
-		PracticeId:   practice.PracticeId,
-		AuthorId:     practice.AccountId,
-		Title:        practice.Title,
-		Theme:        practice.Theme,
-		Major:        practice.Major,
-		DownloadLink: link,
-	})
+	render.JSON(w, r, rest.IssuedPractice{}.DomainToResponse(practice).WithDownloadLink(link))
 	return
 }
 
@@ -84,9 +78,9 @@ func (h Handler) Download(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	l := h.l.With(
-		zap.String("адрес", r.RequestURI),
-		zap.String("операция", operation.DownloadIssuedPractice),
-		zap.String("слой", "http обработчики"),
+		zap.String(layer.Endpoint, r.RequestURI),
+		zap.String(operation.Operation, operation.DownloadIssuedPractice),
+		zap.String(layer.Layer, layer.HTTPLayer),
 	)
 
 	id, err := strconv.Atoi(r.URL.Query().Get("id"))
@@ -100,7 +94,7 @@ func (h Handler) Download(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	practice, err := h.s.ById(ctx, id)
+	practice, err := h.s.ById(ctx, dto.EntityId{Id: id})
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
@@ -123,7 +117,7 @@ func (h Handler) Download(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	path := practice.PracticePath
+	path := practice.Path
 
 	f, err := os.Open(path)
 	defer f.Close()
@@ -149,8 +143,6 @@ func (h Handler) Download(w http.ResponseWriter, r *http.Request) {
 	apiutils.SetDownloadHeaders(w, path, strconv.Itoa(int(i.Size())))
 	w.WriteHeader(http.StatusOK)
 
-	log.Println(r.Host + r.URL.String())
-
 	_, err = io.Copy(w, f)
 	if err != nil {
 		l.Warn("ошибка выдачи файла", zap.Error(err))
@@ -167,9 +159,9 @@ func (h Handler) PracticeByParams(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	l := h.l.With(
-		zap.String("адрес", r.RequestURI),
-		zap.String("операция", operation.GetIssuedPracticeInfoByParams),
-		zap.String("слой", "http обработчики"),
+		zap.String(layer.Endpoint, r.RequestURI),
+		zap.String(operation.Operation, operation.GetIssuedPracticeInfoByParams),
+		zap.String(layer.Layer, layer.HTTPLayer),
 	)
 
 	defaultParams, err := queryutils.DefaultParams(r, 10, 0)

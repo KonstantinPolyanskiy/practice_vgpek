@@ -7,8 +7,11 @@ import (
 	"github.com/go-chi/render"
 	"go.uber.org/zap"
 	"net/http"
+	"practice_vgpek/internal/model/dto"
+	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/permissions"
+	"practice_vgpek/internal/model/transport/rest"
 	"practice_vgpek/pkg/apperr"
 	"practice_vgpek/pkg/queryutils"
 	"strconv"
@@ -30,17 +33,17 @@ func (h AccessHandler) AddRole(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 
-	var addingRole permissions.AddRoleReq
+	var addingRole dto.NewRBACReq
 
 	l := h.l.With(
-		zap.String("адрес", r.RequestURI),
-		zap.String("операция", operation.AddRoleOperation),
-		zap.String("слой", "http обработчики"),
+		zap.String(layer.Endpoint, r.RequestURI),
+		zap.String(operation.Operation, operation.AddRoleOperation),
+		zap.String(layer.Layer, layer.HTTPLayer),
 	)
 
 	err := json.NewDecoder(r.Body).Decode(&addingRole)
 	if err != nil {
-		l.Warn("ошибка декодирования данных", zap.String("decoder error", err.Error()))
+		l.Warn(operation.DecodeError, zap.Error(err))
 
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
 			Action: operation.AddRoleOperation,
@@ -49,7 +52,7 @@ func (h AccessHandler) AddRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	savedRole, err := h.s.NewRole(ctx, addingRole)
+	role, err := h.s.NewRole(ctx, addingRole)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
@@ -66,9 +69,9 @@ func (h AccessHandler) AddRole(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	l.Info("роль успешно добавлена", zap.String("название роли", savedRole.Name))
+	l.Info("роль успешно добавлена", zap.String("название роли", role.Name))
 
-	render.JSON(w, r, &savedRole)
+	render.JSON(w, r, rest.RBACPartDomainToResponse(role))
 	return
 }
 
@@ -88,14 +91,14 @@ func (h AccessHandler) GetRole(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	l := h.l.With(
-		zap.String("адрес", r.RequestURI),
-		zap.String("операция", operation.GetRoleOperation),
-		zap.String("слой", "http обработчики"),
+		zap.String(layer.Endpoint, r.RequestURI),
+		zap.String(operation.Operation, operation.GetRoleOperation),
+		zap.String(layer.Layer, layer.HTTPLayer),
 	)
 
 	id, err := strconv.Atoi(r.URL.Query().Get("id"))
 	if err != nil {
-		l.Warn("ошибка декодирования данных", zap.Error(err))
+		l.Warn(operation.DecodeError, zap.Error(err))
 
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
 			Action: operation.GetRoleOperation,
@@ -104,7 +107,7 @@ func (h AccessHandler) GetRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	role, err := h.s.RoleById(ctx, id)
+	role, err := h.s.RoleById(ctx, dto.EntityId{Id: id})
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
@@ -127,12 +130,9 @@ func (h AccessHandler) GetRole(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	l.Info("роль успешно отдана", zap.Int("id роли", role.Id))
+	l.Info("роль успешно отдана", zap.Int("id роли", role.ID))
 
-	render.JSON(w, r, permissions.GetRoleResp{
-		Id:   role.Id,
-		Name: role.Name,
-	})
+	render.JSON(w, r, rest.RBACPartDomainToResponse(role))
 	return
 }
 
@@ -154,14 +154,14 @@ func (h AccessHandler) GetRoles(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	l := h.l.With(
-		zap.String("адрес", r.RequestURI),
-		zap.String("операция", operation.GetRolesOperation),
-		zap.String("слой", "http обработчики"),
+		zap.String(layer.Endpoint, r.RequestURI),
+		zap.String(operation.Operation, operation.GetRolesOperation),
+		zap.String(layer.Layer, layer.HTTPLayer),
 	)
 
 	defaultParams, err := queryutils.DefaultParams(r, 10, 0)
 	if err != nil {
-		l.Warn("ошибка декодирования данных", zap.Error(err))
+		l.Warn("ошибка получение параметров запроса", zap.Error(err))
 
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
 			Action: operation.GetRolesOperation,
@@ -170,7 +170,9 @@ func (h AccessHandler) GetRoles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	roles, err := h.s.RolesByParams(ctx, defaultParams)
+	stateParams := queryutils.StateParams(r, defaultParams)
+
+	roles, err := h.s.RolesByParams(ctx, stateParams)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
@@ -193,18 +195,8 @@ func (h AccessHandler) GetRoles(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	var resp permissions.GetRolesResp
-	resp.Roles = make([]permissions.GetRoleResp, 0, len(roles))
-
-	for _, role := range roles {
-		resp.Roles = append(resp.Roles, permissions.GetRoleResp{
-			Id:   role.Id,
-			Name: role.Name,
-		})
-	}
-
 	l.Info("роли успешно отданы")
 
-	render.JSON(w, r, resp)
+	render.JSON(w, r, rest.RBACPartsDomainToResponse(roles))
 	return
 }

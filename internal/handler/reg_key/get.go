@@ -6,10 +6,10 @@ import (
 	"github.com/go-chi/render"
 	"go.uber.org/zap"
 	"net/http"
+	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
-	"practice_vgpek/internal/model/params"
 	"practice_vgpek/internal/model/permissions"
-	"practice_vgpek/internal/model/registration_key"
+	"practice_vgpek/internal/model/transport/rest"
 	"practice_vgpek/pkg/apperr"
 	"practice_vgpek/pkg/queryutils"
 	"time"
@@ -33,9 +33,9 @@ func (h Handler) GetKeys(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	l := h.l.With(
-		zap.String("адрес", r.RequestURI),
-		zap.String("операция", operation.GetKeysOperation),
-		zap.String("слой", "http обработчики"),
+		zap.String(layer.Endpoint, r.RequestURI),
+		zap.String(operation.Operation, operation.GetKeysOperation),
+		zap.String(layer.Layer, layer.HTTPLayer),
 	)
 
 	defaultParams, err := queryutils.DefaultParams(r, 10, 0)
@@ -49,16 +49,16 @@ func (h Handler) GetKeys(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	keyParams := getKeyParams(r, defaultParams)
+	stateParams := queryutils.StateParams(r, defaultParams)
 
 	l.Info("попытка получить ключи регистрации",
 		zap.Int("id аккаунта", r.Context().Value("AccountId").(int)),
-		zap.Int("лимит", keyParams.Limit),
-		zap.Int("оффсет", keyParams.Offset),
-		zap.Bool("только валидные", keyParams.IsValid),
+		zap.Int("лимит", stateParams.Limit),
+		zap.Int("оффсет", stateParams.Offset),
+		zap.String("состояние", stateParams.State),
 	)
 
-	keys, err := h.s.KeysByParams(ctx, keyParams)
+	keys, err := h.s.KeysByParams(ctx, stateParams)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
@@ -82,39 +82,8 @@ func (h Handler) GetKeys(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	var resp registration_key.GetKeysResp
-	resp.Keys = make([]registration_key.GetKeyResp, 0, len(keys))
+	l.Info("ключи регистрации успешно получены")
 
-	for _, key := range keys {
-		resp.Keys = append(resp.Keys, registration_key.GetKeyResp{
-			RegKeyId:           key.RegKeyId,
-			RoleId:             key.RoleId,
-			Body:               key.Body,
-			MaxCountUsages:     key.MaxCountUsages,
-			CurrentCountUsages: key.CurrentCountUsages,
-			CreatedAt:          key.CreatedAt,
-			IsValid:            key.IsValid,
-			InvalidationTime:   key.InvalidationTime,
-		})
-	}
-
-	l.Info("ключи регистарции успешно получены")
-
-	render.JSON(w, r, resp)
+	render.JSON(w, r, rest.Keys{}.DomainToResponse(keys))
 	return
-}
-
-func getKeyParams(r *http.Request, defaultParams params.Default) params.Key {
-	isValid := true
-
-	v := r.URL.Query().Get("valid")
-	if v == "false" {
-		isValid = false
-	}
-
-	return params.Key{
-		IsValid: isValid,
-		Default: defaultParams,
-	}
-
 }

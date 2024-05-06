@@ -16,8 +16,20 @@ import (
 
 type AuthnHandler interface {
 	Registration(w http.ResponseWriter, r *http.Request)
+
 	Login(w http.ResponseWriter, r *http.Request)
 	Identity(next http.Handler) http.Handler
+}
+
+type UserHandler interface {
+	AccountById(w http.ResponseWriter, r *http.Request)
+	DeleteAccountById(w http.ResponseWriter, r *http.Request)
+
+	PersonByUUID(w http.ResponseWriter, r *http.Request)
+	EditPersonByUUID(w http.ResponseWriter, r *http.Request)
+
+	PersonByParams(w http.ResponseWriter, r *http.Request)
+	AccountByParams(w http.ResponseWriter, r *http.Request)
 }
 
 type KeyHandler interface {
@@ -78,8 +90,8 @@ type Handler struct {
 func New(service service.Service, logger *zap.Logger) Handler {
 	return Handler{
 		l:                     logger,
-		AuthnHandler:          authn.NewAuthenticationHandler(service.AuthnService, logger),
-		KeyHandler:            reg_key.NewRegKeyHandler(service.KeyService, logger),
+		AuthnHandler:          authn.NewAuthenticationHandler(service.PersonService, service.TokenService, logger),
+		KeyHandler:            reg_key.NewKeyHandler(service.KeyService, logger),
 		RBACHandler:           rbac.NewAccessHandler(service.RBACService, logger),
 		IssuedPracticeHandler: issued_practice.NewIssuedPracticeHandler(service.IssuedPracticeService, logger),
 		SolvedPracticeHandler: solved_practice.NewCompletedPracticeHandler(service.SolvedPracticeService, logger),
@@ -92,7 +104,7 @@ func (h Handler) Init() *chi.Mux {
 	r.Get("/swagger/*", httpSwagger.Handler(
 		httpSwagger.URL("http://localhost:8080/swagger/doc.json")))
 
-	r.Route("/registration", func(r chi.Router) {
+	r.Route("/person", func(r chi.Router) {
 		r.Post("/", h.AuthnHandler.Registration)
 	})
 

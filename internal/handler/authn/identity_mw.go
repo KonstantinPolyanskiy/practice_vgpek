@@ -29,7 +29,7 @@ func (h Handler) Identity(next http.Handler) http.Handler {
 			return
 		}
 
-		id, err := h.s.ParseToken(headerParts[1])
+		id, err := h.tokenService.ParseToken(r.Context(), headerParts[1])
 		if err != nil {
 			apperr.New(w, r, http.StatusUnauthorized, apperr.AppError{
 				Action: operation.LoginOperation,
