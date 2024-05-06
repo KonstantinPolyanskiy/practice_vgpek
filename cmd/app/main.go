@@ -3,14 +3,17 @@ package main
 import (
 	"context"
 	"errors"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/pressly/goose/v3"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"practice_vgpek/internal/dao"
 	"practice_vgpek/internal/handler"
-	"practice_vgpek/internal/repository"
 	"practice_vgpek/internal/service"
 	"practice_vgpek/pkg/logger"
 	"practice_vgpek/pkg/postgres"
@@ -56,8 +59,13 @@ func main() {
 		logging.Fatal("error connect to db", zap.Error(err))
 	}
 
-	repo := repository.New(db, logging)
-	services := service.New(repo, logging)
+	err = migrateDB(db)
+	if err != nil {
+		logging.Error("ошибка миграции", zap.Error(err))
+	}
+
+	dao := dao.New(db, logging)
+	services := service.New(dao, logging)
 	handlers := handler.New(services, logging)
 
 	httpServer := &http.Server{
@@ -102,4 +110,17 @@ func mustLoadConfig() error {
 	viper.SetConfigName("local")
 
 	return viper.ReadInConfig()
+}
+
+func migrateDB(pool *pgxpool.Pool) error {
+	if err := goose.SetDialect("postgres"); err != nil {
+		return err
+	}
+
+	db := stdlib.OpenDBFromPool(pool)
+	if err := goose.Up(db, "migrations"); err != nil {
+		return err
+	}
+
+	return nil
 }
