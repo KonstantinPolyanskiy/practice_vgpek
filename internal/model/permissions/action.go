@@ -1,5 +1,27 @@
 package permissions
 
+const (
+	GetName    = "GET"
+	AddName    = "ADD"
+	EditName   = "EDIT"
+	DeleteName = "DEL"
+)
+
+const (
+	AdminRole   = "ADMIN"
+	UserRole    = "STUDENT"
+	TeacherRole = "TEACHER"
+)
+
+const (
+	UserObject              = "USER"
+	MarkObject              = "MARK"
+	IssuedPracticeObject    = "ISSUED_PRACTICE"
+	CompletedPracticeObject = "COMPLETED_PRACTICE"
+	KeyObject               = "KEY"
+	RBACObject              = "RBAC"
+)
+
 type GetActionReq struct {
 	Id int `json:"action_id"`
 }
