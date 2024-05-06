@@ -2,51 +2,50 @@ package practice
 
 import (
 	"context"
-	"practice_vgpek/internal/model/account"
-	"practice_vgpek/internal/model/practice/issued"
-	"practice_vgpek/internal/model/registration_key"
+	"practice_vgpek/internal/model/entity"
 )
 
-type AccountRepo interface {
-	AccountById(ctx context.Context, id int) (account.Entity, error)
+type AccountDAO interface {
+	ById(ctx context.Context, id int) (entity.Account, error)
 }
 
-type IssuedPracticeRepo interface {
-	ById(ctx context.Context, id int) (issued.Entity, error)
+type IssuedPracticeDAO interface {
+	ById(ctx context.Context, id int) (entity.IssuedPractice, error)
 }
 
-type KeyRepo interface {
-	RegKeyById(ctx context.Context, id int) (registration_key.Entity, error)
+type KeyDAO interface {
+	ById(ctx context.Context, id int) (entity.Key, error)
 }
 
 type Mediator struct {
-	accountRepo AccountRepo
-	issuedRepo  IssuedPracticeRepo
-	keyRepo     KeyRepo
+	accountDAO        AccountDAO
+	issuedPracticeDAO IssuedPracticeDAO
+	keyDAO            KeyDAO
 }
 
-func NewIssuedPracticeMediator(accountRepo AccountRepo, issuedRepo IssuedPracticeRepo, keyRepo KeyRepo) Mediator {
+func NewIssuedPracticeMediator(accountDAO AccountDAO, issuedPracticeDAO IssuedPracticeDAO, keyDAO KeyDAO) Mediator {
 	return Mediator{
-		accountRepo: accountRepo,
-		issuedRepo:  issuedRepo,
-		keyRepo:     keyRepo,
+		accountDAO:        accountDAO,
+		issuedPracticeDAO: issuedPracticeDAO,
+		keyDAO:            keyDAO,
 	}
 }
 
+// IssuedGroupMatch проверяет, что группа ключа совпадает с группой практики
 func (m Mediator) IssuedGroupMatch(ctx context.Context, accountId, practiceId int) (bool, error) {
 	var match bool
 
-	acc, err := m.accountRepo.AccountById(ctx, accountId)
+	acc, err := m.accountDAO.ById(ctx, accountId)
 	if err != nil {
 		return false, err
 	}
 
-	practice, err := m.issuedRepo.ById(ctx, practiceId)
+	practice, err := m.issuedPracticeDAO.ById(ctx, practiceId)
 	if err != nil {
 		return false, err
 	}
 
-	key, err := m.keyRepo.RegKeyById(ctx, acc.RegKeyId)
+	key, err := m.keyDAO.ById(ctx, acc.KeyId)
 	if err != nil {
 		return false, err
 	}
