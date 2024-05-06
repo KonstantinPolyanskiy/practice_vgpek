@@ -4,89 +4,70 @@ import (
 	"context"
 	"fmt"
 	"go.uber.org/zap"
+	"practice_vgpek/internal/model/domain"
+	"practice_vgpek/internal/model/dto"
+	"practice_vgpek/internal/model/entity"
+	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
-	"practice_vgpek/internal/model/permissions"
-	"practice_vgpek/internal/model/practice/solved"
 	"time"
 )
 
 type SetMarkResult struct {
-	MarkedPractice solved.SetMarkResp
+	MarkedPractice domain.SolvedPractice
 	Error          error
 }
 
-func (s Service) SetMark(ctx context.Context, req solved.SetMarkReq) (solved.SetMarkResp, error) {
+func (s Service) SetMark(ctx context.Context, req dto.MarkPracticeReq) (domain.SolvedPractice, error) {
 	resCh := make(chan SetMarkResult)
 
-	l := s.l.With(
-		zap.String("операция", operation.SetMarkSolvedPractice),
-		zap.String("слой", "сервисы"),
+	l := s.logger.With(
+		zap.String(operation.Operation, operation.SetMarkSolvedPractice),
+		zap.String(layer.Layer, layer.ServiceLayer),
 	)
 
 	go func() {
 		accountId := ctx.Value("AccountId").(int)
 
-		hasAccess, err := s.am.HasAccess(ctx, accountId, MarkObjectName, AddActionName)
-		if err != nil {
-			l.Warn("возникла ошибка при проверке прав", zap.Error(err))
-
-			sendSetMarkResult(resCh, solved.SetMarkResp{}, permissions.ErrCheckAccess.Error())
-			return
-		}
-
-		if !hasAccess {
-			l.Warn("попытка поставить оценку без прав", zap.Int("id аккаунта", accountId))
-
-			sendSetMarkResult(resCh, solved.SetMarkResp{}, permissions.ErrDontHavePerm.Error())
-			return
-		}
-
-		currentPractice, err := s.spr.ById(ctx, req.SolvedPracticeId)
-		if err != nil {
-			sendSetMarkResult(resCh, solved.SetMarkResp{}, "ошибка при получении практической работы")
-			return
-		}
-
 		markTime := time.Now()
 
-		updatedPractice := solved.Entity{
-			SolvedPracticeId:   currentPractice.SolvedPracticeId,
-			PerformedAccountId: currentPractice.PerformedAccountId,
-			IssuedPracticeId:   currentPractice.IssuedPracticeId,
-			Mark:               req.Mark,
+		markedPracticeEntity, err := s.solvedPracticeDAO.Update(ctx, entity.SolvedPracticeUpdate{
+			Id:                 req.SolvedPracticeId,
+			PerformedAccountId: nil,
+			IssuedPracticeId:   nil,
+			Mark:               &req.Mark,
 			MarkTime:           &markTime,
-			SolvedTime:         currentPractice.SolvedTime,
-			Path:               currentPractice.Path,
-			IsDeleted:          currentPractice.IsDeleted,
-		}
-
-		markedPractice, err := s.spr.Update(ctx, updatedPractice)
+			SolvedTime:         nil,
+			Path:               nil,
+			IsDeleted:          nil,
+		})
 		if err != nil {
-			sendSetMarkResult(resCh, solved.SetMarkResp{}, "ошибка при обновлении практической работы")
+			sendSetMarkResult(resCh, domain.SolvedPractice{}, "ошибка при обновлении практической работы")
 			return
 		}
 
-		resp := solved.SetMarkResp{
-			SolvedPracticeId: markedPractice.SolvedPracticeId,
-			Mark:             markedPractice.Mark,
-			MarkTime:         *markedPractice.MarkTime,
+		practice, err := s.EntityToDomain(ctx, accountId, markedPracticeEntity)
+		if err != nil {
+			l.Warn("возникла ошибка при переводе сущности БД в сущность логики", zap.Error(err))
+
+			sendSetMarkResult(resCh, domain.SolvedPractice{}, "ошибка формирования практической работы")
+			return
 		}
 
-		sendSetMarkResult(resCh, resp, "")
+		sendSetMarkResult(resCh, practice, "")
 		return
 	}()
 
 	for {
 		select {
 		case <-ctx.Done():
-			return solved.SetMarkResp{}, ctx.Err()
+			return domain.SolvedPractice{}, ctx.Err()
 		case result := <-resCh:
 			return result.MarkedPractice, result.Error
 		}
 	}
 }
 
-func sendSetMarkResult(resCh chan SetMarkResult, resp solved.SetMarkResp, errMsg string) {
+func sendSetMarkResult(resCh chan SetMarkResult, resp domain.SolvedPractice, errMsg string) {
 	var err error
 
 	if errMsg != "" {

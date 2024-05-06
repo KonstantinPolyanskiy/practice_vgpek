@@ -3,82 +3,95 @@ package service
 import (
 	"context"
 	"go.uber.org/zap"
+	"practice_vgpek/internal/dao"
 	"practice_vgpek/internal/mediator/account"
 	"practice_vgpek/internal/mediator/practice"
+	"practice_vgpek/internal/model/domain"
+	"practice_vgpek/internal/model/dto"
 	"practice_vgpek/internal/model/params"
-	"practice_vgpek/internal/model/permissions"
-	"practice_vgpek/internal/model/person"
-	"practice_vgpek/internal/model/practice/issued"
-	"practice_vgpek/internal/model/practice/solved"
-	"practice_vgpek/internal/model/registration_key"
-	"practice_vgpek/internal/repository"
-	"practice_vgpek/internal/service/authn"
 	"practice_vgpek/internal/service/issued_practice"
+	"practice_vgpek/internal/service/key"
+	"practice_vgpek/internal/service/person"
 	"practice_vgpek/internal/service/rbac"
-	"practice_vgpek/internal/service/reg_key"
 	"practice_vgpek/internal/service/solved_practice"
+	"practice_vgpek/internal/service/token"
 	"practice_vgpek/internal/storage"
 )
 
 type AuthnService interface {
-	NewPerson(ctx context.Context, registering person.RegistrationReq) (person.RegisteredResp, error)
-	NewToken(ctx context.Context, logIn person.LogInReq) (person.LogInResp, error)
-	// ParseToken в случае, если токен распарсен - возвращает id аккаунта
-	ParseToken(token string) (int, error)
+	NewUser(ctx context.Context, registration dto.RegistrationReq) (domain.Person, error)
+}
+
+type TokenService interface {
+	ParseToken(ctx context.Context, token string) (int, error)
+	CreateToken(ctx context.Context, cred dto.Credentials) (string, error)
+}
+
+type PersonService interface {
+	NewUser(ctx context.Context, registration dto.RegistrationReq) (domain.Person, error)
 }
 
 type RBACService interface {
-	NewAction(ctx context.Context, addingAction permissions.AddActionReq) (permissions.AddActionResp, error)
-	ActionById(ctx context.Context, req permissions.GetActionReq) (permissions.ActionEntity, error)
-	ActionsByParams(ctx context.Context, params params.Default) ([]permissions.ActionEntity, error)
+	NewAction(ctx context.Context, req dto.NewRBACReq) (domain.Action, error)
+	ActionById(ctx context.Context, req dto.EntityId) (domain.Action, error)
+	ActionsByParams(ctx context.Context, params params.State) ([]domain.Action, error)
 
-	NewObject(ctx context.Context, addingObject permissions.AddObjectReq) (permissions.AddObjectResp, error)
-	ObjectById(ctx context.Context, id int) (permissions.ObjectEntity, error)
-	ObjectsByParams(ctx context.Context, params params.Default) ([]permissions.ObjectEntity, error)
+	NewObject(ctx context.Context, req dto.NewRBACReq) (domain.Object, error)
+	ObjectById(ctx context.Context, req dto.EntityId) (domain.Object, error)
+	ObjectsByParams(ctx context.Context, params params.State) ([]domain.Object, error)
 
-	NewRole(ctx context.Context, addingRole permissions.AddRoleReq) (permissions.AddRoleResp, error)
-	RoleById(ctx context.Context, id int) (permissions.RoleEntity, error)
-	RolesByParams(ctx context.Context, params params.Default) ([]permissions.RoleEntity, error)
+	NewRole(ctx context.Context, req dto.NewRBACReq) (domain.Role, error)
+	RoleById(ctx context.Context, req dto.EntityId) (domain.Role, error)
+	RolesByParams(ctx context.Context, params params.State) ([]domain.Role, error)
 
-	NewPermission(ctx context.Context, addingPerm permissions.AddPermReq) (permissions.AddPermResp, error)
+	NewPermission(ctx context.Context, req dto.SetPermissionReq) error
 }
 
 type KeyService interface {
-	NewKey(ctx context.Context, req registration_key.AddReq) (registration_key.AddResp, error)
-	InvalidateKey(ctx context.Context, deletingKey registration_key.DeleteReq) (registration_key.DeleteResp, error)
-	KeysByParams(ctx context.Context, keyParams params.Key) ([]registration_key.Entity, error)
+	NewKey(ctx context.Context, req dto.NewKeyReq) (domain.Key, error)
+	InvalidateKey(ctx context.Context, id int) (domain.InvalidatedKey, error)
+	KeysByParams(ctx context.Context, keyParams params.State) ([]domain.Key, error)
 }
 
 type IssuedPracticeService interface {
-	Save(ctx context.Context, req issued.UploadReq) (issued.UploadResp, error)
-	ById(ctx context.Context, id int) (issued.Entity, error)
+	Save(ctx context.Context, req dto.NewIssuedPracticeReq) (domain.IssuedPractice, error)
+	ById(ctx context.Context, req dto.EntityId) (domain.IssuedPractice, error)
 }
 
 type SolvedPracticeService interface {
-	Save(ctx context.Context, req solved.UploadReq) (solved.UploadResp, error)
-	ById(ctx context.Context, id int) (solved.Entity, error)
+	Save(ctx context.Context, req dto.NewSolvedPracticeReq) (domain.SolvedPractice, error)
+	ById(ctx context.Context, req dto.EntityId) (domain.SolvedPractice, error)
 
-	SetMark(ctx context.Context, req solved.SetMarkReq) (solved.SetMarkResp, error)
+	SetMark(ctx context.Context, req dto.MarkPracticeReq) (domain.SolvedPractice, error)
 }
 
 type Service struct {
-	AuthnService
+	PersonService
+	TokenService
 	KeyService
 	RBACService
 	IssuedPracticeService
 	SolvedPracticeService
 }
 
-func New(repository repository.Repository, logger *zap.Logger) Service {
-	am := account.NewAccountMediator(repository.AccountRepo, repository.KeyRepo, repository.RoleRepo, repository.PermissionRepo)
-	ipm := practice.NewIssuedPracticeMediator(repository.AccountRepo, repository.IssuedPracticeRepo, repository.KeyRepo)
+func New(daoAggregator dao.Aggregator, logger *zap.Logger) Service {
+	accountMediator := account.NewAccountMediator(daoAggregator.AccountDAO, daoAggregator.KeyDAO, daoAggregator.RoleDAO, daoAggregator.PermissionDAO)
+	issuedMediator := practice.NewIssuedPracticeMediator(daoAggregator.AccountDAO, daoAggregator.IssuedDAO, daoAggregator.KeyDAO)
 	fileStorage := storage.NewFileStorage()
 
+	keyService := key.New(daoAggregator.KeyDAO, daoAggregator.RoleDAO, accountMediator, logger)
+	personService := person.New(daoAggregator.KeyDAO, daoAggregator.PersonDAO, daoAggregator.AccountDAO, daoAggregator.RoleDAO, keyService, accountMediator, logger)
+	tokenService := token.New(daoAggregator.AccountDAO, "ioj9t3r89ug489h", logger)
+	rbacService := rbac.New(daoAggregator.ActionDAO, daoAggregator.ObjectDAO, daoAggregator.RoleDAO, daoAggregator.PermissionDAO, accountMediator, logger)
+	issuedService := issued_practice.New(daoAggregator.IssuedDAO, daoAggregator.PersonDAO, fileStorage, accountMediator, issuedMediator, logger)
+	solvedService := solved_practice.New(accountMediator, issuedMediator, fileStorage, daoAggregator.SolvedDAO, daoAggregator.IssuedDAO, daoAggregator.PersonDAO, daoAggregator.AccountDAO, logger)
+
 	return Service{
-		AuthnService:          authn.NewAuthenticationService(repository.PersonRepo, repository.AccountRepo, repository.KeyRepo, logger),
-		KeyService:            reg_key.NewKeyService(repository.KeyRepo, logger, am),
-		RBACService:           rbac.NewRBACService(repository.ActionRepo, repository.ObjectRepo, repository.RoleRepo, repository.PermissionRepo, am, logger),
-		IssuedPracticeService: issued_practice.NewIssuedPracticeService(repository.IssuedPracticeRepo, fileStorage, am, ipm, logger),
-		SolvedPracticeService: solved_practice.NewSolvedPracticeService(am, ipm, fileStorage, repository.SolvedPracticeRepo, repository.IssuedPracticeRepo, logger),
+		PersonService:         personService,
+		TokenService:          tokenService,
+		KeyService:            keyService,
+		RBACService:           rbacService,
+		IssuedPracticeService: issuedService,
+		SolvedPracticeService: solvedService,
 	}
 }
