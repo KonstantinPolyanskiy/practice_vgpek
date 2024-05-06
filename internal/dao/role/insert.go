@@ -1,4 +1,4 @@
-package action
+package role
 
 import (
 	"context"
@@ -12,26 +12,26 @@ import (
 	"time"
 )
 
-func (dao DAO) Save(ctx context.Context, action dto.NewRBACPart) (entity.Action, error) {
+func (dao DAO) Save(ctx context.Context, role dto.NewRBACPart) (entity.Role, error) {
 	l := dao.logger.With(
-		zap.String(operation.Operation, operation.SaveActionDAO),
+		zap.String(operation.Operation, operation.SaveRoleDAO),
 		zap.String(layer.Layer, layer.DataLayer),
 	)
 
-	insertQuery := `INSERT INTO internal_action 
-    				(internal_action_name, description, created_at) 
+	insertQuery := `INSERT INTO internal_role 
+    				(role_name, description, created_at) 
 					VALUES 
-					(@ActionName, @Description, @created_at)
-					RETURNING internal_action_id`
+					(@RoleName, @Description, created_at)
+					RETURNING internal_role_id`
 
 	args := pgx.NamedArgs{
-		"ActionName":  action.Name,
-		"Description": action.Description,
-		"CreatedAt":   action.CreatedAt,
+		"RoleName":    role.Name,
+		"Description": role.Description,
+		"CreatedAt":   role.CreatedAt,
 	}
 
 	l.Debug("аргументы запроса",
-		zap.String("название", args["ActionName"].(string)),
+		zap.String("название", args["RoleName"].(string)),
 		zap.String("описание", args["Description"].(string)),
 		zap.Time("время создания", args["CreatedAt"].(time.Time)),
 	)
@@ -42,30 +42,30 @@ func (dao DAO) Save(ctx context.Context, action dto.NewRBACPart) (entity.Action,
 	err := dao.db.QueryRow(ctx, insertQuery, args).Scan(&id)
 	if err != nil {
 		l.Error(operation.ExecuteError, zap.Error(err))
-		return entity.Action{}, err
+		return entity.Role{}, err
 	}
 
 	l.Debug(operation.Insert, zap.Duration("время выполнения", timeutils.TrackTime(now)))
 
-	getQuery := `SELECT * FROM internal_action WHERE internal_action_id=$1`
+	getQuery := `SELECT * FROM internal_role WHERE internal_role_id=$1`
 
 	now = time.Now()
 	rows, err := dao.db.Query(ctx, getQuery, id)
 	defer rows.Close()
 	if err != nil {
 		l.Error(operation.ExecuteError, zap.Error(err))
-		return entity.Action{}, err
+		return entity.Role{}, err
 	}
 
-	l.Debug(operation.Select, zap.Duration("время выполнения", timeutils.TrackTime(now)))
+	l.Debug(operation.Insert, zap.Duration("время выполнения", timeutils.TrackTime(now)))
 
-	saved, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[entity.Action])
+	saved, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[entity.Role])
 	if err != nil {
 		l.Error(operation.CollectError, zap.Error(err))
-		return entity.Action{}, err
+		return entity.Role{}, err
 	}
 
-	l.Info(operation.SuccessfullyRecorded, zap.Int("id действия", id))
+	l.Info(operation.SuccessfullyRecorded, zap.Int("id роли", id))
 
 	return saved, nil
 }

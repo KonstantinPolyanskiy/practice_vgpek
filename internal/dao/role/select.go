@@ -1,4 +1,4 @@
-package action
+package role
 
 import (
 	"context"
@@ -13,48 +13,48 @@ import (
 	"time"
 )
 
-func (dao DAO) ById(ctx context.Context, id int) (entity.Action, error) {
+func (dao DAO) ById(ctx context.Context, id int) (entity.Role, error) {
 	l := dao.logger.With(
-		zap.String(operation.Operation, operation.SelectActionById),
+		zap.String(operation.Operation, operation.SelectRoleById),
 		zap.String(layer.Layer, layer.DataLayer),
 	)
 
-	getQuery := `SELECT * FROM internal_action WHERE internal_action_id=@ActionId`
+	getQuery := `SELECT * FROM internal_role WHERE internal_role_id=@RoleId`
 
 	args := pgx.NamedArgs{
-		"ActionId": id,
+		"RoleId": id,
 	}
 
-	l.Debug("аргументы запроса", zap.Int("id действия", args["ActionId"].(int)))
+	l.Debug("аргументы запроса", zap.Int("id роли", args["RoleId"].(int)))
 
 	now := time.Now()
 	rows, err := dao.db.Query(ctx, getQuery, args)
 	defer rows.Close()
 	if err != nil {
 		l.Error(operation.ExecuteError, zap.Error(err))
-		return entity.Action{}, err
+		return entity.Role{}, err
 	}
 
 	l.Debug(operation.Select, zap.Duration("время выполнения", timeutils.TrackTime(now)))
 
-	action, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[entity.Action])
+	role, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[entity.Role])
 	if err != nil {
 		l.Error(operation.CollectError, zap.Error(err))
-		return entity.Action{}, err
+		return entity.Role{}, err
 	}
 
-	l.Info(operation.SuccessfullyReceived, zap.Int("id действия", action.Id))
+	l.Info(operation.SuccessfullyReceived, zap.Int("id роли", role.Id))
 
-	return action, nil
+	return role, nil
 }
 
-func (dao DAO) ByParams(ctx context.Context, p params.Default) ([]entity.Action, error) {
+func (dao DAO) ByParams(ctx context.Context, p params.Default) ([]entity.Role, error) {
 	l := dao.logger.With(
-		zap.String(operation.Operation, operation.SelectActionByParams),
+		zap.String(operation.Operation, operation.SelectRoleByParams),
 		zap.String(layer.Layer, layer.DataLayer),
 	)
 
-	selectQuery := squirrel.Select("*").From("internal_action").
+	selectQuery := squirrel.Select("*").From("internal_role").
 		Limit(uint64(p.Limit)).
 		Offset(uint64(p.Offset)).
 		PlaceholderFormat(squirrel.Dollar)
@@ -81,13 +81,13 @@ func (dao DAO) ByParams(ctx context.Context, p params.Default) ([]entity.Action,
 
 	l.Debug(operation.Select, zap.Duration("время выполнения", timeutils.TrackTime(now)))
 
-	actions, err := pgx.CollectRows(rows, pgx.RowToStructByName[entity.Action])
+	roles, err := pgx.CollectRows(rows, pgx.RowToStructByName[entity.Role])
 	if err != nil {
 		l.Error(operation.CollectError, zap.Error(err))
 		return nil, err
 	}
 
-	l.Info(operation.SuccessfullyReceived, zap.Int("количество действий", len(actions)))
+	l.Info(operation.SuccessfullyReceived, zap.Int("количество ролей", len(roles)))
 
-	return actions, nil
+	return roles, nil
 }

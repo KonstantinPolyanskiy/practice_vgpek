@@ -1,4 +1,4 @@
-package action
+package object
 
 import (
 	"context"
@@ -13,48 +13,48 @@ import (
 	"time"
 )
 
-func (dao DAO) ById(ctx context.Context, id int) (entity.Action, error) {
+func (dao DAO) ById(ctx context.Context, id int) (entity.Object, error) {
 	l := dao.logger.With(
-		zap.String(operation.Operation, operation.SelectActionById),
+		zap.String(operation.Operation, operation.SelectObjectById),
 		zap.String(layer.Layer, layer.DataLayer),
 	)
 
-	getQuery := `SELECT * FROM internal_action WHERE internal_action_id=@ActionId`
+	getQuery := `SELECT * FROM internal_object WHERE internal_object_id=@ObjectId`
 
 	args := pgx.NamedArgs{
-		"ActionId": id,
+		"ObjectId": id,
 	}
 
-	l.Debug("аргументы запроса", zap.Int("id действия", args["ActionId"].(int)))
+	l.Debug("аргументы запроса", zap.Int("id объекта", args["ObjectId"].(int)))
 
 	now := time.Now()
 	rows, err := dao.db.Query(ctx, getQuery, args)
 	defer rows.Close()
 	if err != nil {
 		l.Error(operation.ExecuteError, zap.Error(err))
-		return entity.Action{}, err
+		return entity.Object{}, err
 	}
 
 	l.Debug(operation.Select, zap.Duration("время выполнения", timeutils.TrackTime(now)))
 
-	action, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[entity.Action])
+	object, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[entity.Object])
 	if err != nil {
 		l.Error(operation.CollectError, zap.Error(err))
-		return entity.Action{}, err
+		return entity.Object{}, err
 	}
 
-	l.Info(operation.SuccessfullyReceived, zap.Int("id действия", action.Id))
+	l.Info(operation.SuccessfullyReceived, zap.Int("id действия", object.Id))
 
-	return action, nil
+	return object, nil
 }
 
-func (dao DAO) ByParams(ctx context.Context, p params.Default) ([]entity.Action, error) {
+func (dao DAO) ByParams(ctx context.Context, p params.Default) ([]entity.Object, error) {
 	l := dao.logger.With(
-		zap.String(operation.Operation, operation.SelectActionByParams),
+		zap.String(operation.Operation, operation.SelectObjectByParams),
 		zap.String(layer.Layer, layer.DataLayer),
 	)
 
-	selectQuery := squirrel.Select("*").From("internal_action").
+	selectQuery := squirrel.Select("*").From("internal_object").
 		Limit(uint64(p.Limit)).
 		Offset(uint64(p.Offset)).
 		PlaceholderFormat(squirrel.Dollar)
@@ -81,13 +81,13 @@ func (dao DAO) ByParams(ctx context.Context, p params.Default) ([]entity.Action,
 
 	l.Debug(operation.Select, zap.Duration("время выполнения", timeutils.TrackTime(now)))
 
-	actions, err := pgx.CollectRows(rows, pgx.RowToStructByName[entity.Action])
+	objects, err := pgx.CollectRows(rows, pgx.RowToStructByName[entity.Object])
 	if err != nil {
 		l.Error(operation.CollectError, zap.Error(err))
 		return nil, err
 	}
 
-	l.Info(operation.SuccessfullyReceived, zap.Int("количество действий", len(actions)))
+	l.Info(operation.SuccessfullyReceived, zap.Int("количество объектов", len(objects)))
 
-	return actions, nil
+	return objects, nil
 }
