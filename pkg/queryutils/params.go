@@ -32,3 +32,21 @@ func DefaultParams(r *http.Request, defaultLimit, defaultOffset int) (params.Def
 
 	return result, nil
 }
+
+// StateParams возвращает параметры состояния, если указаны неверное - возвращает params.All
+func StateParams(r *http.Request, p params.Default) params.State {
+	var result params.State
+
+	result.Default = p
+
+	state := r.URL.Query().Get("state")
+
+	if state == "" {
+		result.State = params.All
+		return result
+	}
+
+	result.State = state
+
+	return result
+}
