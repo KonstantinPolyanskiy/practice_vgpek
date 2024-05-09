@@ -1,6 +1,15 @@
 version: "3.9"
 
 services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+    command: go run cmd/app/main.go
+    networks:
+      - golang-postgres-docker
   postgres:
     container_name: postgres_container
     image: postgres:latest
@@ -15,7 +24,7 @@ services:
     ports:
       - "5432:5432"
     networks:
-      - postgres
+      - golang-postgres-docker
   pgadmin:
     container_name: "pgadmin_container"
     image: dpage/pgadmin4:latest
@@ -29,10 +38,11 @@ services:
       - "5050:80"
     restart: unless-stopped
     networks:
-      - postgres
+      - golang-postgres-docker
+
 volumes:
   practicedb-data:
   pgadmin-data:
 networks:
-  postgres:
+  golang-postgres-docker:
     driver: bridge
