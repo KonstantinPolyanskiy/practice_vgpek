@@ -1,27 +1,15 @@
 package rbac
 
 import (
-	"context"
 	"go.uber.org/zap"
 )
 
-const (
-	ObjectName    = "RBAC"
-	GetActionName = "GET"
-)
-
-type AccountMediator interface {
-	// HasAccess проверяет, есть ли у указанной роли доступ к переданному действию к указанному объекту
-	HasAccess(ctx context.Context, roleId int, objectName, actionName string) (bool, error)
-}
-
 type RBACService struct {
-	l               *zap.Logger
-	actionDAO       ActionDAO
-	objectDAO       ObjectDAO
-	roleDAO         RoleDAO
-	permDAO         PermissionDAO
-	accountMediator AccountMediator
+	l         *zap.Logger
+	actionDAO ActionDAO
+	objectDAO ObjectDAO
+	roleDAO   RoleDAO
+	permDAO   PermissionDAO
 }
 
 func New(
@@ -29,15 +17,13 @@ func New(
 	objectDAO ObjectDAO,
 	roleDAO RoleDAO,
 	permDAO PermissionDAO,
-	accountMediator AccountMediator,
 	logger *zap.Logger) RBACService {
 	return RBACService{
-		actionDAO:       actionDAO,
-		objectDAO:       objectDAO,
-		roleDAO:         roleDAO,
-		permDAO:         permDAO,
-		accountMediator: accountMediator,
-		l:               logger,
+		actionDAO: actionDAO,
+		objectDAO: objectDAO,
+		roleDAO:   roleDAO,
+		permDAO:   permDAO,
+		l:         logger,
 	}
 }
 
