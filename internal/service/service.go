@@ -8,6 +8,7 @@ import (
 	"practice_vgpek/internal/mediator/practice"
 	"practice_vgpek/internal/model/domain"
 	"practice_vgpek/internal/model/dto"
+	"practice_vgpek/internal/model/entity"
 	"practice_vgpek/internal/model/params"
 	"practice_vgpek/internal/service/issued_practice"
 	"practice_vgpek/internal/service/key"
@@ -29,6 +30,11 @@ type TokenService interface {
 
 type PersonService interface {
 	NewUser(ctx context.Context, registration dto.RegistrationReq) (domain.Person, error)
+
+	EntityAccountById(ctx context.Context, req dto.EntityId) (entity.Account, error)
+	AccountById(ctx context.Context, req dto.EntityId) (domain.Account, error)
+
+	EntityAccountByParam(ctx context.Context, p params.State) ([]entity.Account, error)
 }
 
 type RBACService interface {
@@ -45,10 +51,12 @@ type RBACService interface {
 	RolesByParams(ctx context.Context, params params.State) ([]domain.Role, error)
 
 	NewPermission(ctx context.Context, req dto.SetPermissionReq) error
+	ByRoleId(ctx context.Context, req dto.EntityId) ([]domain.Permissions, error)
 }
 
 type KeyService interface {
 	NewKey(ctx context.Context, req dto.NewKeyReq) (domain.Key, error)
+	ById(ctx context.Context, req dto.EntityId) (domain.Key, error)
 	InvalidateKey(ctx context.Context, id int) (domain.InvalidatedKey, error)
 	KeysByParams(ctx context.Context, keyParams params.State) ([]domain.Key, error)
 }
@@ -75,14 +83,17 @@ type Service struct {
 }
 
 func New(daoAggregator dao.Aggregator, logger *zap.Logger) Service {
-	accountMediator := account.NewAccountMediator(daoAggregator.AccountDAO, daoAggregator.KeyDAO, daoAggregator.RoleDAO, daoAggregator.PermissionDAO)
 	issuedMediator := practice.NewIssuedPracticeMediator(daoAggregator.AccountDAO, daoAggregator.IssuedDAO, daoAggregator.KeyDAO)
 	fileStorage := storage.NewFileStorage()
+	rbacService := rbac.New(daoAggregator.ActionDAO, daoAggregator.ObjectDAO, daoAggregator.RoleDAO, daoAggregator.PermissionDAO, logger)
 
-	keyService := key.New(daoAggregator.KeyDAO, daoAggregator.RoleDAO, accountMediator, logger)
-	personService := person.New(daoAggregator.KeyDAO, daoAggregator.PersonDAO, daoAggregator.AccountDAO, daoAggregator.RoleDAO, keyService, accountMediator, logger)
+	keyService := key.New(daoAggregator.KeyDAO, daoAggregator.RoleDAO, logger)
+
+	personService := person.New(rbacService, daoAggregator.PermissionDAO, daoAggregator.KeyDAO, daoAggregator.PersonDAO, daoAggregator.AccountDAO, daoAggregator.RoleDAO, keyService, logger)
+
+	accountMediator := account.NewAccountMediator(personService, keyService, rbacService, rbacService)
+
 	tokenService := token.New(daoAggregator.AccountDAO, "ioj9t3r89ug489h", logger)
-	rbacService := rbac.New(daoAggregator.ActionDAO, daoAggregator.ObjectDAO, daoAggregator.RoleDAO, daoAggregator.PermissionDAO, accountMediator, logger)
 	issuedService := issued_practice.New(daoAggregator.IssuedDAO, daoAggregator.PersonDAO, fileStorage, accountMediator, issuedMediator, logger)
 	solvedService := solved_practice.New(accountMediator, issuedMediator, fileStorage, daoAggregator.SolvedDAO, daoAggregator.IssuedDAO, daoAggregator.PersonDAO, daoAggregator.AccountDAO, logger)
 
