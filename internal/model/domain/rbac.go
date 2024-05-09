@@ -2,6 +2,31 @@ package domain
 
 import "time"
 
+const (
+	AdminRole   = "ADMIN"
+	TeacherRole = "TEACHER"
+	StudentRole = "STUDENT"
+)
+
+const (
+	AddAction    = "ADD"
+	GetAction    = "GET"
+	EditAction   = "EDIT"
+	DeleteAction = "DELETE"
+)
+
+const (
+	AccountObject = "ACCOUNT"
+)
+
+type Permissions struct {
+	PermissionId int
+
+	Role
+	Action
+	Object
+}
+
 type RolePermission struct {
 	Role   Role
 	Object ObjectWithActions
