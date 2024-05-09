@@ -11,6 +11,7 @@ import (
 	"practice_vgpek/internal/handler/reg_key"
 	"practice_vgpek/internal/handler/solved_practice"
 	"practice_vgpek/internal/handler/user"
+	"practice_vgpek/internal/mediator/account"
 	"practice_vgpek/internal/service"
 )
 
@@ -84,6 +85,7 @@ type Handler struct {
 }
 
 func New(service service.Service, logger *zap.Logger) Handler {
+	accountMediator := account.NewAccountMediator(service.PersonService, service.KeyService, service.RBACService, service.RBACService)
 	return Handler{
 		l:                     logger,
 		AuthnHandler:          authn.NewAuthenticationHandler(service.PersonService, service.TokenService, logger),
@@ -91,7 +93,7 @@ func New(service service.Service, logger *zap.Logger) Handler {
 		RBACHandler:           rbac.NewAccessHandler(service.RBACService, logger),
 		IssuedPracticeHandler: issued_practice.NewIssuedPracticeHandler(service.IssuedPracticeService, logger),
 		SolvedPracticeHandler: solved_practice.NewCompletedPracticeHandler(service.SolvedPracticeService, logger),
-		UserHandler:           user.New(service.PersonService, logger),
+		UserHandler:           user.New(service.PersonService, accountMediator, logger),
 	}
 }
 
@@ -102,6 +104,8 @@ func (h Handler) Init() *chi.Mux {
 		r.Post("/", h.AuthnHandler.Registration)
 
 		r.Route("/account", func(r chi.Router) {
+			r.Use(h.AuthnHandler.Identity)
+
 			r.Get("/", h.GetAccount)
 			r.Get("/param", h.GetAccountsByParam)
 		})
