@@ -10,6 +10,7 @@ import (
 	"practice_vgpek/internal/model/dto"
 	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
+	"practice_vgpek/internal/model/transport/rest"
 	"practice_vgpek/pkg/apperr"
 	"time"
 )
@@ -71,21 +72,7 @@ func (h Handler) Registration(w http.ResponseWriter, r *http.Request) {
 		zap.String("логин аккаунта", user.Account.Login),
 	)
 
-	resp := dto.RegistrationResp{
-		UUID:           user.UUID,
-		FirstName:      user.FirstName,
-		MiddleName:     user.MiddleName,
-		LastName:       user.LastName,
-		Login:          user.Login,
-		IsActive:       user.IsActive,
-		DeactivateTime: user.DeactivateTime,
-		RoleName:       user.RoleName,
-		RoleId:         user.RoleId,
-		KeyId:          user.KeyId,
-		CreatedAt:      user.CreatedAt,
-	}
-
-	render.JSON(w, r, resp)
+	render.JSON(w, r, rest.Person{}.DomainToResponse(user))
 	return
 
 }

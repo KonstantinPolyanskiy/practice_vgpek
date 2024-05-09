@@ -17,27 +17,6 @@ type RegistrationReq struct {
 	BodyKey string `json:"registration_key"`
 }
 
-// RegistrationResp ответ при успешной регистрации
-type RegistrationResp struct {
-	UUID uuid.UUID `json:"uuid"`
-
-	FirstName  string `json:"first_name"`
-	MiddleName string `json:"middle_name"`
-	LastName   string `json:"last_name"`
-
-	Login string `json:"login"`
-
-	IsActive       bool       `json:"is_active"`
-	DeactivateTime *time.Time `json:"deactivate_time"`
-
-	RoleName string `json:"role_name"`
-	RoleId   int    `json:"role_id"`
-
-	KeyId int `json:"key_id"`
-
-	CreatedAt time.Time `json:"created_at"`
-}
-
 type Credentials struct {
 	Login    string `json:"login"`
 	Password string `json:"password"`
