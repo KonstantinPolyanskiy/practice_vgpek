@@ -5,13 +5,10 @@ import (
 	"fmt"
 	"go.uber.org/zap"
 	"practice_vgpek/internal/model/domain"
+	"practice_vgpek/internal/model/dto"
 	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/params"
-)
-
-const (
-	GetActionName = "GET"
 )
 
 type GetKeysResult struct {
@@ -24,7 +21,7 @@ type GetKeyResult struct {
 	Error error
 }
 
-func (s Service) ById(ctx context.Context, id int) (domain.Key, error) {
+func (s Service) ById(ctx context.Context, req dto.EntityId) (domain.Key, error) {
 	resCh := make(chan GetKeyResult)
 
 	l := s.l.With(
@@ -33,7 +30,7 @@ func (s Service) ById(ctx context.Context, id int) (domain.Key, error) {
 	)
 
 	go func() {
-		keyEntity, err := s.keyDAO.ById(ctx, id)
+		keyEntity, err := s.keyDAO.ById(ctx, req.Id)
 		if err != nil {
 			sendGetKeyResult(resCh, domain.Key{}, "Ошибка получения ключа")
 			return
