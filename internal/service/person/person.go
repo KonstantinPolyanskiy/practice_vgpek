@@ -14,10 +14,6 @@ type KeyDAO interface {
 	Update(ctx context.Context, key entity.Key) (entity.Key, error)
 }
 
-type AccountMediator interface {
-	PermByAccountId(ctx context.Context, id int) (domain.RolePermission, error)
-}
-
 type KeyService interface {
 	InvalidateKey(ctx context.Context, id int) (domain.InvalidatedKey, error)
 	Increment(ctx context.Context, key entity.Key) (entity.Key, error)
@@ -25,6 +21,14 @@ type KeyService interface {
 
 type RoleDAO interface {
 	ById(ctx context.Context, id int) (entity.Role, error)
+}
+
+type RoleService interface {
+	RoleById(ctx context.Context, req dto.EntityId) (domain.Role, error)
+}
+
+type PermDAO interface {
+	ByRoleId(ctx context.Context, roleId int) ([]entity.Permissions, error)
 }
 
 type PersonDAO interface {
@@ -41,17 +45,18 @@ type AccountDAO interface {
 type Service struct {
 	logger *zap.Logger
 
-	keyDAO     KeyDAO
-	personDAO  PersonDAO
-	accountDAO AccountDAO
-	roleDAO    RoleDAO
+	keyDAO      KeyDAO
+	personDAO   PersonDAO
+	accountDAO  AccountDAO
+	roleDAO     RoleDAO
+	roleService RoleService
+
+	permDAO PermDAO
 
 	keyService KeyService
-
-	accountMediator AccountMediator
 }
 
-func New(kd KeyDAO, pd PersonDAO, ad AccountDAO, rd RoleDAO, keyService KeyService, am AccountMediator, logger *zap.Logger) Service {
+func New(roleService RoleService, permDAO PermDAO, kd KeyDAO, pd PersonDAO, ad AccountDAO, rd RoleDAO, keyService KeyService, logger *zap.Logger) Service {
 	return Service{
 		logger: logger,
 
@@ -59,9 +64,9 @@ func New(kd KeyDAO, pd PersonDAO, ad AccountDAO, rd RoleDAO, keyService KeyServi
 		personDAO:  pd,
 		accountDAO: ad,
 		roleDAO:    rd,
+		permDAO:    permDAO,
 
-		keyService: keyService,
-
-		accountMediator: am,
+		roleService: roleService,
+		keyService:  keyService,
 	}
 }
