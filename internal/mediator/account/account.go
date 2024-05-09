@@ -4,53 +4,54 @@ import (
 	"context"
 	"errors"
 	"practice_vgpek/internal/model/domain"
-	"practice_vgpek/internal/model/entity"
+	"practice_vgpek/internal/model/dto"
 )
 
-type KeyDAO interface {
-	ById(ctx context.Context, id int) (entity.Key, error)
+type KeyService interface {
+	ById(ctx context.Context, id dto.EntityId) (domain.Key, error)
 }
-type AccountDAO interface {
-	ById(ctx context.Context, id int) (entity.Account, error)
+type AccountService interface {
+	AccountById(ctx context.Context, id dto.EntityId) (domain.Account, error)
 }
-type RoleDAO interface {
-	ById(ctx context.Context, id int) (entity.Role, error)
+
+type RoleService interface {
+	ById(ctx context.Context, id dto.EntityId) (domain.Role, error)
 }
-type PermissionDAO interface {
-	ByRoleId(ctx context.Context, roleId int) ([]entity.Permissions, error)
+type PermissionService interface {
+	ByRoleId(ctx context.Context, id dto.EntityId) ([]domain.Permissions, error)
 }
 
 type Mediator struct {
-	AccountDAO AccountDAO
-	KeyDAO     KeyDAO
-	RoleDAO    RoleDAO
-	PermDAO    PermissionDAO
+	AccountService AccountService
+	KeyService     KeyService
+	RoleService    RoleService
+	PermService    PermissionService
 }
 
-func NewAccountMediator(AccountDAO AccountDAO, KeyDAO KeyDAO,
-	RoleDAO RoleDAO, PermDAO PermissionDAO) Mediator {
+func NewAccountMediator(AccountService AccountService, KeyService KeyService,
+	RoleService RoleService, PermService PermissionService) Mediator {
 	return Mediator{
-		AccountDAO: AccountDAO,
-		KeyDAO:     KeyDAO,
-		RoleDAO:    RoleDAO,
-		PermDAO:    PermDAO,
+		AccountService: AccountService,
+		KeyService:     KeyService,
+		RoleService:    RoleService,
+		PermService:    PermService,
 	}
 }
 
-func (m Mediator) RoleByAccountId(ctx context.Context, id int) (entity.Role, error) {
-	acc, err := m.AccountDAO.ById(ctx, id)
+func (m Mediator) RoleByAccountId(ctx context.Context, id int) (domain.Role, error) {
+	acc, err := m.AccountService.AccountById(ctx, dto.EntityId{Id: id})
 	if err != nil {
-		return entity.Role{}, err
+		return domain.Role{}, err
 	}
 
-	key, err := m.KeyDAO.ById(ctx, acc.KeyId)
+	key, err := m.KeyService.ById(ctx, dto.EntityId{Id: acc.KeyId})
 	if err != nil {
-		return entity.Role{}, err
+		return domain.Role{}, err
 	}
 
-	role, err := m.RoleDAO.ById(ctx, key.RoleId)
+	role, err := m.RoleService.ById(ctx, dto.EntityId{Id: key.RoleId})
 	if err != nil {
-		return entity.Role{}, err
+		return domain.Role{}, err
 	}
 
 	return role, nil
@@ -64,7 +65,7 @@ func (m Mediator) HasAccess(ctx context.Context, accountId int, objectName, acti
 		return false, err
 	}
 
-	perms, err := m.PermDAO.ByRoleId(ctx, role.Id)
+	perms, err := m.PermService.ByRoleId(ctx, dto.EntityId{Id: role.ID})
 	if err != nil {
 		return false, err
 	}
@@ -86,63 +87,52 @@ func (m Mediator) HasAccess(ctx context.Context, accountId int, objectName, acti
 }
 
 func (m Mediator) PermByAccountId(ctx context.Context, id int) (domain.RolePermission, error) {
-	acc, err := m.AccountDAO.ById(ctx, id)
+	acc, err := m.AccountService.AccountById(ctx, dto.EntityId{Id: id})
 	if err != nil {
 		return domain.RolePermission{}, err
 	}
 
-	role, err := m.RoleDAO.ById(ctx, acc.RoleId)
+	role, err := m.RoleService.ById(ctx, dto.EntityId{Id: acc.RoleId})
 	if err != nil {
 		return domain.RolePermission{}, err
 	}
 
-	perms, err := m.PermDAO.ByRoleId(ctx, role.Id)
+	perms, err := m.PermService.ByRoleId(ctx, dto.EntityId{Id: role.ID})
 	if err != nil {
 		return domain.RolePermission{}, err
 	}
 
 	var rolePerm domain.RolePermission
 
-	var isDeleted bool
-
-	if role.IsDeleted != nil {
-		isDeleted = true
-	}
-
 	domainRole := domain.Role{
-		ID:          role.Id,
+		ID:          role.ID,
 		Name:        role.Name,
 		Description: role.Description,
 		CreatedAt:   role.CreatedAt,
-		IsDeleted:   isDeleted,
-		DeletedAt:   role.IsDeleted,
+		IsDeleted:   role.IsDeleted,
+		DeletedAt:   role.DeletedAt,
 	}
 
 	rolePerm.Role = domainRole
 
 	for _, perm := range perms {
-		var isDeleted bool
-
-		if perm.Action.IsDeleted != nil {
-			isDeleted = true
-		}
 
 		domainAction := domain.Action{
-			ID:          perm.Action.Id,
+			ID:          perm.Action.ID,
 			Name:        perm.Action.Name,
 			Description: perm.Action.Description,
 			CreatedAt:   perm.Action.CreatedAt,
-			IsDeleted:   isDeleted,
-			DeletedAt:   perm.Action.IsDeleted,
+			IsDeleted:   perm.Action.IsDeleted,
+			DeletedAt:   perm.Action.DeletedAt,
 		}
 
 		domainObject := domain.Object{
-			ID:          perm.Object.Id,
+			ID:          perm.Object.ID,
 			Name:        perm.Object.Name,
 			Description: perm.Object.Description,
 			CreatedAt:   perm.Object.CreatedAt,
-			IsDeleted:   isDeleted,
-			DeletedAt:   perm.Object.IsDeleted,
+			IsDeleted:   perm.Object.IsDeleted,
+			DeletedAt:   perm.Object.DeletedAt,
 		}
 
 		rolePerm.Object = domain.ObjectWithActions{
