@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/render"
 	"go.uber.org/zap"
 	"net/http"
+	"practice_vgpek/internal/model/domain"
 	"practice_vgpek/internal/model/dto"
 	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
@@ -17,7 +18,7 @@ import (
 )
 
 func (h Handler) GetAccount(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 300000*time.Second)
 	defer cancel()
 
 	var req dto.EntityId
@@ -40,6 +41,25 @@ func (h Handler) GetAccount(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req.Id = id
+
+	hasAccess, err := h.AccountMediator.HasAccess(ctx, ctx.Value("AccountId").(int), domain.AccountObject, domain.GetAction)
+	if err != nil {
+		l.Warn("ошибка проверки доступа", zap.Error(err))
+
+		apperr.New(w, r, http.StatusForbidden, apperr.AppError{
+			Action: operation.GetAccountOperation,
+			Error:  "Ошибка проверки доступа",
+		})
+		return
+	}
+
+	if !hasAccess {
+		apperr.New(w, r, http.StatusForbidden, apperr.AppError{
+			Action: operation.GetAccountOperation,
+			Error:  "Недостаточно прав",
+		})
+		return
+	}
 
 	account, err := h.AccountService.EntityAccountById(ctx, req)
 	if err != nil {
@@ -88,6 +108,25 @@ func (h Handler) GetAccountsByParam(w http.ResponseWriter, r *http.Request) {
 	}
 
 	stateParams := queryutils.StateParams(r, defaultParams)
+
+	hasAccess, err := h.AccountMediator.HasAccess(ctx, ctx.Value("AccountId").(int), domain.AccountObject, domain.GetAction)
+	if err != nil {
+		l.Warn("ошибка проверки доступа", zap.Error(err))
+
+		apperr.New(w, r, http.StatusForbidden, apperr.AppError{
+			Action: operation.GetAccountOperation,
+			Error:  "Ошибка проверки доступа",
+		})
+		return
+	}
+
+	if !hasAccess {
+		apperr.New(w, r, http.StatusForbidden, apperr.AppError{
+			Action: operation.GetAccountOperation,
+			Error:  "Недостаточно прав",
+		})
+		return
+	}
 
 	accounts, err := h.AccountService.EntityAccountByParam(ctx, stateParams)
 	if err != nil {
