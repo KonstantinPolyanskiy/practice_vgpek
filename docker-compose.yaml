@@ -7,7 +7,9 @@ services:
       - "8080:8080"
     volumes:
       - .:/app
-    command: go run cmd/app/main.go
+    command:
+      - go mod tidy
+      - go run cmd/app/main.go
     networks:
       - golang-postgres-docker
   postgres:
