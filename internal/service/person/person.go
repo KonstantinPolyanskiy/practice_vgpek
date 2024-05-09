@@ -6,6 +6,7 @@ import (
 	"practice_vgpek/internal/model/domain"
 	"practice_vgpek/internal/model/dto"
 	"practice_vgpek/internal/model/entity"
+	"practice_vgpek/internal/model/params"
 )
 
 type KeyDAO interface {
@@ -32,6 +33,8 @@ type PersonDAO interface {
 
 type AccountDAO interface {
 	Save(ctx context.Context, data dto.AccountRegistrationData) (entity.Account, error)
+	ById(ctx context.Context, id int) (entity.Account, error)
+	ByParams(ctx context.Context, p params.Default) ([]entity.Account, error)
 	HardDeleteById(ctx context.Context, id int) error
 }
 

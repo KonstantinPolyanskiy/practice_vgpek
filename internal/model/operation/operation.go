@@ -152,8 +152,9 @@ const (
 
 // Операции с аккаунтом
 const (
-	NewAccountOperation = "создание нового аккаунта"
-	GetAccountOperation = "получение аккаунта по id"
+	NewAccountOperation          = "создание нового аккаунта"
+	GetAccountOperation          = "получение аккаунта по id"
+	GetAccountsByParamsOperation = "получение аккаунтов по параметрам"
 )
 
 // Операции с практическими заданиями

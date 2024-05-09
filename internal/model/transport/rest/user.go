@@ -3,6 +3,7 @@ package rest
 import (
 	"github.com/google/uuid"
 	"practice_vgpek/internal/model/domain"
+	"practice_vgpek/internal/model/entity"
 	"time"
 )
 
@@ -17,6 +18,42 @@ type Account struct {
 	RoleId   int    `json:"role_id"`
 
 	CreatedAt time.Time `json:"created_at"`
+}
+
+type AccountEntity struct {
+	Id             int        `json:"id"`
+	Login          string     `json:"login"`
+	PasswordHash   string     `json:"password_hash"`
+	CreatedAt      time.Time  `json:"created_at"`
+	IsActive       bool       `json:"is_active"`
+	DeactivateTime *time.Time `json:"deactivate_time"`
+	KeyId          int        `json:"key_id"`
+	RoleId         int        `json:"role_id"`
+}
+
+func (a AccountEntity) EntityToResponse(account entity.Account) AccountEntity {
+	return AccountEntity{
+		Id:             account.Id,
+		Login:          account.Login,
+		PasswordHash:   account.PasswordHash,
+		CreatedAt:      account.CreatedAt,
+		IsActive:       account.IsActive,
+		DeactivateTime: account.DeactivateTime,
+		KeyId:          account.KeyId,
+		RoleId:         account.RoleId,
+	}
+}
+
+type AccountsEntity struct {
+	Accounts []AccountEntity
+}
+
+func (a AccountsEntity) EntityToResponse(accounts []entity.Account) AccountsEntity {
+	for _, acc := range accounts {
+		a.Accounts = append(a.Accounts, AccountEntity{}.EntityToResponse(acc))
+	}
+
+	return a
 }
 
 type Person struct {
