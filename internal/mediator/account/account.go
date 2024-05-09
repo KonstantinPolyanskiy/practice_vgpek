@@ -8,17 +8,17 @@ import (
 )
 
 type KeyService interface {
-	ById(ctx context.Context, id dto.EntityId) (domain.Key, error)
+	ById(ctx context.Context, req dto.EntityId) (domain.Key, error)
 }
 type AccountService interface {
-	AccountById(ctx context.Context, id dto.EntityId) (domain.Account, error)
+	AccountById(ctx context.Context, req dto.EntityId) (domain.Account, error)
 }
 
 type RoleService interface {
-	ById(ctx context.Context, id dto.EntityId) (domain.Role, error)
+	RoleById(ctx context.Context, req dto.EntityId) (domain.Role, error)
 }
 type PermissionService interface {
-	ByRoleId(ctx context.Context, id dto.EntityId) ([]domain.Permissions, error)
+	ByRoleId(ctx context.Context, req dto.EntityId) ([]domain.Permissions, error)
 }
 
 type Mediator struct {
@@ -49,7 +49,7 @@ func (m Mediator) RoleByAccountId(ctx context.Context, id int) (domain.Role, err
 		return domain.Role{}, err
 	}
 
-	role, err := m.RoleService.ById(ctx, dto.EntityId{Id: key.RoleId})
+	role, err := m.RoleService.RoleById(ctx, dto.EntityId{Id: key.RoleId})
 	if err != nil {
 		return domain.Role{}, err
 	}
@@ -84,62 +84,4 @@ func (m Mediator) HasAccess(ctx context.Context, accountId int, objectName, acti
 	}
 
 	return hasAction && hasObject, nil
-}
-
-func (m Mediator) PermByAccountId(ctx context.Context, id int) (domain.RolePermission, error) {
-	acc, err := m.AccountService.AccountById(ctx, dto.EntityId{Id: id})
-	if err != nil {
-		return domain.RolePermission{}, err
-	}
-
-	role, err := m.RoleService.ById(ctx, dto.EntityId{Id: acc.RoleId})
-	if err != nil {
-		return domain.RolePermission{}, err
-	}
-
-	perms, err := m.PermService.ByRoleId(ctx, dto.EntityId{Id: role.ID})
-	if err != nil {
-		return domain.RolePermission{}, err
-	}
-
-	var rolePerm domain.RolePermission
-
-	domainRole := domain.Role{
-		ID:          role.ID,
-		Name:        role.Name,
-		Description: role.Description,
-		CreatedAt:   role.CreatedAt,
-		IsDeleted:   role.IsDeleted,
-		DeletedAt:   role.DeletedAt,
-	}
-
-	rolePerm.Role = domainRole
-
-	for _, perm := range perms {
-
-		domainAction := domain.Action{
-			ID:          perm.Action.ID,
-			Name:        perm.Action.Name,
-			Description: perm.Action.Description,
-			CreatedAt:   perm.Action.CreatedAt,
-			IsDeleted:   perm.Action.IsDeleted,
-			DeletedAt:   perm.Action.DeletedAt,
-		}
-
-		domainObject := domain.Object{
-			ID:          perm.Object.ID,
-			Name:        perm.Object.Name,
-			Description: perm.Object.Description,
-			CreatedAt:   perm.Object.CreatedAt,
-			IsDeleted:   perm.Object.IsDeleted,
-			DeletedAt:   perm.Object.DeletedAt,
-		}
-
-		rolePerm.Object = domain.ObjectWithActions{
-			Object:  domainObject,
-			Actions: append(rolePerm.Object.Actions, domainAction),
-		}
-	}
-
-	return rolePerm, nil
 }
