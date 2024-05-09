@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"go.uber.org/zap"
+	"practice_vgpek/internal/model/domain"
 	"practice_vgpek/internal/model/dto"
 	"practice_vgpek/internal/model/entity"
 	"practice_vgpek/internal/model/layer"
@@ -11,18 +12,74 @@ import (
 	"practice_vgpek/internal/model/params"
 )
 
-type GetAccountResult struct {
+type GetAccountEntityResult struct {
 	Account entity.Account
 	Error   error
 }
 
-type GetAccountsResult struct {
+type GetAccountsEntityResult struct {
 	Accounts []entity.Account
 	Error    error
 }
 
-func (s Service) EntityAccountById(ctx context.Context, req dto.EntityId) (entity.Account, error) {
+type GetAccountResult struct {
+	Account domain.Account
+	Error   error
+}
+
+func (s Service) AccountById(ctx context.Context, req dto.EntityId) (domain.Account, error) {
 	resCh := make(chan GetAccountResult)
+
+	_ = s.logger.With(
+		zap.String(operation.Operation, operation.GetAccountOperation),
+		zap.String(layer.Layer, layer.ServiceLayer),
+	)
+
+	go func() {
+		account, err := s.accountDAO.ById(ctx, req.Id)
+		if err != nil {
+			sendGetAccountResult(resCh, domain.Account{}, "ошибка получения аккаунта")
+			return
+		}
+
+		role, err := s.roleDAO.ById(ctx, account.RoleId)
+		if err != nil {
+			sendGetAccountResult(resCh, domain.Account{}, "ошибка получения роли")
+			return
+		}
+
+		var isDeleted bool
+
+		if account.DeactivateTime != nil {
+			isDeleted = true
+		}
+
+		acc := domain.Account{
+			Login:          account.Login,
+			IsActive:       isDeleted,
+			DeactivateTime: account.DeactivateTime,
+			RoleName:       role.Name,
+			RoleId:         role.Id,
+			KeyId:          account.KeyId,
+			CreatedAt:      account.CreatedAt,
+		}
+
+		sendGetAccountResult(resCh, acc, "")
+		return
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return domain.Account{}, ctx.Err()
+		case result := <-resCh:
+			return result.Account, result.Error
+		}
+	}
+}
+
+func (s Service) EntityAccountById(ctx context.Context, req dto.EntityId) (entity.Account, error) {
+	resCh := make(chan GetAccountEntityResult)
 
 	l := s.logger.With(
 		zap.String(operation.Operation, operation.GetAccountOperation),
@@ -32,13 +89,13 @@ func (s Service) EntityAccountById(ctx context.Context, req dto.EntityId) (entit
 	go func() {
 		account, err := s.accountDAO.ById(ctx, req.Id)
 		if err != nil {
-			sendGetAccountResult(resCh, entity.Account{}, "ошибка получения аккаунта")
+			sendGetAccountEntityResult(resCh, entity.Account{}, "ошибка получения аккаунта")
 			return
 		}
 
 		l.Info("получен аккаунт", zap.Int("id", account.Id))
 
-		sendGetAccountResult(resCh, account, "")
+		sendGetAccountEntityResult(resCh, account, "")
 		return
 	}()
 
@@ -53,7 +110,7 @@ func (s Service) EntityAccountById(ctx context.Context, req dto.EntityId) (entit
 }
 
 func (s Service) EntityAccountByParam(ctx context.Context, p params.State) ([]entity.Account, error) {
-	resCh := make(chan GetAccountsResult)
+	resCh := make(chan GetAccountsEntityResult)
 
 	l := s.logger.With(
 		zap.String(operation.Operation, operation.GetAccountsByParamsOperation),
@@ -63,7 +120,7 @@ func (s Service) EntityAccountByParam(ctx context.Context, p params.State) ([]en
 	go func() {
 		rawAccounts, err := s.accountDAO.ByParams(ctx, p.Default)
 		if err != nil {
-			sendGetAccountsResult(resCh, nil, "ошибка получения аккаунтов")
+			sendGetAccountsEntityResult(resCh, nil, "ошибка получения аккаунтов")
 			return
 		}
 
@@ -87,7 +144,7 @@ func (s Service) EntityAccountByParam(ctx context.Context, p params.State) ([]en
 			}
 		}
 
-		sendGetAccountsResult(resCh, accounts, "")
+		sendGetAccountsEntityResult(resCh, accounts, "")
 		return
 	}()
 
@@ -101,20 +158,33 @@ func (s Service) EntityAccountByParam(ctx context.Context, p params.State) ([]en
 	}
 }
 
-func sendGetAccountsResult(resCh chan GetAccountsResult, resp []entity.Account, errMsg string) {
+func sendGetAccountsEntityResult(resCh chan GetAccountsEntityResult, resp []entity.Account, errMsg string) {
 	var err error
 
 	if errMsg != "" {
 		err = fmt.Errorf(errMsg)
 	}
 
-	resCh <- GetAccountsResult{
+	resCh <- GetAccountsEntityResult{
 		Accounts: resp,
 		Error:    err,
 	}
 }
 
-func sendGetAccountResult(resCh chan GetAccountResult, resp entity.Account, errMsg string) {
+func sendGetAccountEntityResult(resCh chan GetAccountEntityResult, resp entity.Account, errMsg string) {
+	var err error
+
+	if errMsg != "" {
+		err = fmt.Errorf(errMsg)
+	}
+
+	resCh <- GetAccountEntityResult{
+		Account: resp,
+		Error:   err,
+	}
+}
+
+func sendGetAccountResult(resCh chan GetAccountResult, resp domain.Account, errMsg string) {
 	var err error
 
 	if errMsg != "" {
