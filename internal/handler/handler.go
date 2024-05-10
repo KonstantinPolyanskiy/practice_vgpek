@@ -115,7 +115,7 @@ func (h Handler) Init() *chi.Mux {
 			r.Use(h.AuthnHandler.Identity)
 
 			r.Get("/", h.GetAccount)
-			r.Get("/param", h.GetAccountsByParam)
+			r.Get("/params", h.GetAccountsByParam)
 		})
 	})
 
