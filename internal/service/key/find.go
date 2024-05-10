@@ -112,13 +112,15 @@ func (s Service) KeysByParams(ctx context.Context, keyParams params.State) ([]do
 			})
 		}
 
+		keysResp := make([]domain.Key, 0)
+
 		switch keyParams.State {
 		case params.All:
-			break
+			keysResp = append(keysResp, domainKeys...)
 		case params.Deleted:
-			domainKeys = filterDeleted(domainKeys)
+			keysResp = filterDeleted(domainKeys)
 		case params.NotDeleted:
-			domainKeys = filterNotDeleted(domainKeys)
+			keysResp = filterNotDeleted(domainKeys)
 		default:
 			l.Warn("ошибка при фильтрации",
 				zap.String("состояние", keyParams.State),
@@ -129,7 +131,7 @@ func (s Service) KeysByParams(ctx context.Context, keyParams params.State) ([]do
 			return
 		}
 
-		sendGetKeysResult(resCh, domainKeys, "")
+		sendGetKeysResult(resCh, keysResp, "")
 		return
 	}()
 

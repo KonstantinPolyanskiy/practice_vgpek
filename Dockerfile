@@ -7,6 +7,7 @@ ENV GOPATH=/
 COPY ./ ./
 
 RUN go mod download
+
 RUN go mod tidy
 
 RUN go build -o backend ./cmd/app/main.go
