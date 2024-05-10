@@ -44,7 +44,7 @@ func (s Service) NewUser(ctx context.Context, registration dto.RegistrationReq) 
 		// Если текущее кол-во регистраций больше или равно допустимому - инвалидируем
 		if key.CurrentCountUsages >= key.MaxCountUsages {
 			l.Warn("превышено кол-во попыток регистрации по ключу", zap.Int("id ключа", key.Id))
-			_, err = s.keyService.InvalidateKey(ctx, key.Id)
+			_, err = s.keyService.InvalidateKey(ctx, dto.EntityId{Id: key.Id})
 			if err != nil {
 				sendRegistrationResult(resCh, domain.Person{}, "Ошибка инвалидирования ключа регистрации")
 				return

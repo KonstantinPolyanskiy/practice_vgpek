@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go.uber.org/zap"
 	"practice_vgpek/internal/model/domain"
+	"practice_vgpek/internal/model/dto"
 	"practice_vgpek/internal/model/entity"
 	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
@@ -20,7 +21,7 @@ type InvalidateKeyResult struct {
 	Error      error
 }
 
-func (s Service) InvalidateKey(ctx context.Context, id int) (domain.InvalidatedKey, error) {
+func (s Service) InvalidateKey(ctx context.Context, req dto.EntityId) (domain.InvalidatedKey, error) {
 	resCh := make(chan InvalidateKeyResult)
 
 	_ = s.l.With(
@@ -31,7 +32,7 @@ func (s Service) InvalidateKey(ctx context.Context, id int) (domain.InvalidatedK
 	go func() {
 		deleteTime := time.Now()
 		invalidated, err := s.keyDAO.Update(ctx, entity.Key{
-			Id:                 id,
+			Id:                 req.Id,
 			RoleId:             0,
 			Body:               "",
 			MaxCountUsages:     0,

@@ -15,7 +15,7 @@ type KeyDAO interface {
 }
 
 type KeyService interface {
-	InvalidateKey(ctx context.Context, id int) (domain.InvalidatedKey, error)
+	InvalidateKey(ctx context.Context, id dto.EntityId) (domain.InvalidatedKey, error)
 	Increment(ctx context.Context, key entity.Key) (entity.Key, error)
 }
 
