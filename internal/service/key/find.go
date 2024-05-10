@@ -21,7 +21,7 @@ type GetKeyResult struct {
 	Error error
 }
 
-func (s Service) ById(ctx context.Context, req dto.EntityId) (domain.Key, error) {
+func (s Service) KeyById(ctx context.Context, req dto.EntityId) (domain.Key, error) {
 	resCh := make(chan GetKeyResult)
 
 	l := s.l.With(

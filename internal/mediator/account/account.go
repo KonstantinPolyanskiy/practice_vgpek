@@ -8,7 +8,7 @@ import (
 )
 
 type KeyService interface {
-	ById(ctx context.Context, req dto.EntityId) (domain.Key, error)
+	KeyById(ctx context.Context, req dto.EntityId) (domain.Key, error)
 }
 type AccountService interface {
 	AccountById(ctx context.Context, req dto.EntityId) (domain.Account, error)
@@ -44,7 +44,7 @@ func (m Mediator) RoleByAccountId(ctx context.Context, id int) (domain.Role, err
 		return domain.Role{}, err
 	}
 
-	key, err := m.KeyService.ById(ctx, dto.EntityId{Id: acc.KeyId})
+	key, err := m.KeyService.KeyById(ctx, dto.EntityId{Id: acc.KeyId})
 	if err != nil {
 		return domain.Role{}, err
 	}

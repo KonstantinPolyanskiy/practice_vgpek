@@ -31,6 +31,8 @@ type UserHandler interface {
 type KeyHandler interface {
 	AddKey(w http.ResponseWriter, r *http.Request)
 	DeleteKey(w http.ResponseWriter, r *http.Request)
+
+	GetKey(w http.ResponseWriter, r *http.Request)
 	GetKeys(w http.ResponseWriter, r *http.Request)
 }
 
@@ -90,7 +92,7 @@ func New(service service.Service, logger *zap.Logger) Handler {
 	return Handler{
 		l:                     logger,
 		AuthnHandler:          authn.NewAuthenticationHandler(service.PersonService, service.TokenService, logger),
-		KeyHandler:            reg_key.NewKeyHandler(service.KeyService, logger),
+		KeyHandler:            reg_key.NewKeyHandler(service.KeyService, accountMediator, logger),
 		RBACHandler:           rbac.NewAccessHandler(service.RBACService, logger),
 		IssuedPracticeHandler: issued_practice.NewIssuedPracticeHandler(service.IssuedPracticeService, logger),
 		SolvedPracticeHandler: solved_practice.NewCompletedPracticeHandler(service.SolvedPracticeService, logger),
@@ -127,6 +129,7 @@ func (h Handler) Init() *chi.Mux {
 		r.Post("/", h.KeyHandler.AddKey)
 		r.Delete("/", h.KeyHandler.DeleteKey)
 
+		r.Get("/", h.KeyHandler.GetKey)
 		r.Get("/params", h.KeyHandler.GetKeys)
 	})
 

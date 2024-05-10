@@ -57,7 +57,7 @@ type RBACService interface {
 
 type KeyService interface {
 	NewKey(ctx context.Context, req dto.NewKeyReq) (domain.Key, error)
-	ById(ctx context.Context, req dto.EntityId) (domain.Key, error)
+	KeyById(ctx context.Context, req dto.EntityId) (domain.Key, error)
 	InvalidateKey(ctx context.Context, id int) (domain.InvalidatedKey, error)
 	KeysByParams(ctx context.Context, keyParams params.State) ([]domain.Key, error)
 }
