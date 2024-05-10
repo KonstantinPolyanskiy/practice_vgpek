@@ -17,6 +17,7 @@ const (
 
 const (
 	AccountObject = "ACCOUNT"
+	KeyObject     = "KEY"
 )
 
 type Permissions struct {

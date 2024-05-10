@@ -40,7 +40,7 @@ func (h Handler) GetKey(w http.ResponseWriter, r *http.Request) {
 
 	l.Info("попытка получить ключ регистрации", zap.Int("id", id))
 
-	hasAccess, err := h.accountMediator.HasAccess(ctx, ctx.Value("AccountId").(int), domain.AccountObject, domain.GetAction)
+	hasAccess, err := h.accountMediator.HasAccess(ctx, ctx.Value("AccountId").(int), domain.KeyObject, domain.GetAction)
 	if err != nil {
 		l.Warn("ошибка проверки доступа", zap.Error(err))
 
@@ -113,6 +113,25 @@ func (h Handler) GetKeys(w http.ResponseWriter, r *http.Request) {
 		zap.Int("оффсет", stateParams.Offset),
 		zap.String("состояние", stateParams.State),
 	)
+
+	hasAccess, err := h.accountMediator.HasAccess(ctx, ctx.Value("AccountId").(int), domain.KeyObject, domain.GetAction)
+	if err != nil {
+		l.Warn("ошибка проверки доступа", zap.Error(err))
+
+		apperr.New(w, r, http.StatusForbidden, apperr.AppError{
+			Action: operation.GetKeysOperation,
+			Error:  "Ошибка проверки доступа",
+		})
+		return
+	}
+
+	if !hasAccess {
+		apperr.New(w, r, http.StatusForbidden, apperr.AppError{
+			Action: operation.GetKeysOperation,
+			Error:  "Недостаточно прав",
+		})
+		return
+	}
 
 	keys, err := h.s.KeysByParams(ctx, stateParams)
 	if err != nil {

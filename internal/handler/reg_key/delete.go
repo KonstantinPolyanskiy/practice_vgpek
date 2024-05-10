@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/render"
 	"go.uber.org/zap"
 	"net/http"
+	"practice_vgpek/internal/model/domain"
 	"practice_vgpek/internal/model/dto"
 	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
@@ -40,6 +41,25 @@ func (h Handler) DeleteKey(w http.ResponseWriter, r *http.Request) {
 		zap.Int("id аккаунта", r.Context().Value("AccountId").(int)),
 		zap.Int("id ключа", id),
 	)
+
+	hasAccess, err := h.accountMediator.HasAccess(ctx, ctx.Value("AccountId").(int), domain.KeyObject, domain.DeleteAction)
+	if err != nil {
+		l.Warn("ошибка проверки доступа", zap.Error(err))
+
+		apperr.New(w, r, http.StatusForbidden, apperr.AppError{
+			Action: operation.GetKeyByIdOperation,
+			Error:  "Ошибка проверки доступа",
+		})
+		return
+	}
+
+	if !hasAccess {
+		apperr.New(w, r, http.StatusForbidden, apperr.AppError{
+			Action: operation.GetKeyByIdOperation,
+			Error:  "Недостаточно прав",
+		})
+		return
+	}
 
 	deletedKey, err := h.s.InvalidateKey(ctx, dto.EntityId{Id: id})
 	if err != nil {

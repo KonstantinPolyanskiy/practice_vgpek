@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/render"
 	"go.uber.org/zap"
 	"net/http"
+	"practice_vgpek/internal/model/domain"
 	"practice_vgpek/internal/model/dto"
 	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
@@ -54,6 +55,25 @@ func (h Handler) AddKey(w http.ResponseWriter, r *http.Request) {
 		zap.Int("роль ключа", addingKey.RoleId),
 		zap.Int("макс. кол-во исп-ий", addingKey.MaxCountUsages),
 	)
+
+	hasAccess, err := h.accountMediator.HasAccess(ctx, ctx.Value("AccountId").(int), domain.KeyObject, domain.AddAction)
+	if err != nil {
+		l.Warn("ошибка проверки доступа", zap.Error(err))
+
+		apperr.New(w, r, http.StatusForbidden, apperr.AppError{
+			Action: operation.NewKeyOperation,
+			Error:  "Ошибка проверки доступа",
+		})
+		return
+	}
+
+	if !hasAccess {
+		apperr.New(w, r, http.StatusForbidden, apperr.AppError{
+			Action: operation.NewKeyOperation,
+			Error:  "Недостаточно прав",
+		})
+		return
+	}
 
 	createdKey, err := h.s.NewKey(ctx, addingKey)
 	if err != nil {
