@@ -91,9 +91,9 @@ func New(service service.Service, logger *zap.Logger) Handler {
 	accountMediator := account.NewAccountMediator(service.PersonService, service.KeyService, service.RBACService, service.RBACService)
 	return Handler{
 		l:                     logger,
-		AuthnHandler:          authn.NewAuthenticationHandler(service.PersonService, service.TokenService, logger),
+		AuthnHandler:          authn.NewAuthenticationHandler(service.PersonService, service.TokenService, service.RBACService, logger),
 		KeyHandler:            reg_key.NewKeyHandler(service.KeyService, accountMediator, logger),
-		RBACHandler:           rbac.NewAccessHandler(service.RBACService, logger),
+		RBACHandler:           rbac.NewAccessHandler(service.RBACService, accountMediator, logger),
 		IssuedPracticeHandler: issued_practice.NewIssuedPracticeHandler(service.IssuedPracticeService, logger),
 		SolvedPracticeHandler: solved_practice.NewCompletedPracticeHandler(service.SolvedPracticeService, logger),
 		UserHandler:           user.New(service.PersonService, service.PersonService, accountMediator, logger),

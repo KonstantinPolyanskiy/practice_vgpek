@@ -10,7 +10,6 @@ import (
 	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/params"
-	"time"
 )
 
 type ActionDAO interface {
@@ -55,7 +54,6 @@ func (s RBACService) NewAction(ctx context.Context, req dto.NewRBACReq) (domain.
 		part := dto.NewRBACPart{
 			Name:        req.Name,
 			Description: req.Description,
-			CreatedAt:   time.Now(),
 		}
 
 		// Сохраняем действие в БД

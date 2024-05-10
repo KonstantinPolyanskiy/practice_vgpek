@@ -10,6 +10,7 @@ import (
 type PersonService interface {
 	// NewUser создает нового пользователя (Person и Account)
 	NewUser(ctx context.Context, registration dto.RegistrationReq) (domain.Person, error)
+	AccountById(ctx context.Context, req dto.EntityId) (domain.Account, error)
 }
 
 type TokenService interface {
@@ -20,16 +21,23 @@ type TokenService interface {
 	ParseToken(ctx context.Context, token string) (int, error)
 }
 
-type Handler struct {
-	logger        *zap.Logger
-	personService PersonService
-	tokenService  TokenService
+type RBACService interface {
+	RoleById(ctx context.Context, req dto.EntityId) (domain.Role, error)
 }
 
-func NewAuthenticationHandler(personService PersonService, tokenService TokenService, logger *zap.Logger) Handler {
+type Handler struct {
+	logger *zap.Logger
+
+	personService PersonService
+	tokenService  TokenService
+	RBACService   RBACService
+}
+
+func NewAuthenticationHandler(personService PersonService, tokenService TokenService, rbacService RBACService, logger *zap.Logger) Handler {
 	return Handler{
 		logger:        logger,
 		personService: personService,
 		tokenService:  tokenService,
+		RBACService:   rbacService,
 	}
 }

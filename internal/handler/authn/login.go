@@ -70,8 +70,59 @@ func (h Handler) Login(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	accountId, err := h.tokenService.ParseToken(ctx, token)
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
+				Action: operation.LoginOperation,
+				Error:  "Таймаут",
+			})
+			return
+		} else {
+			apperr.New(w, r, http.StatusInternalServerError, apperr.AppError{
+				Action: operation.LoginOperation,
+				Error:  err.Error(),
+			})
+			return
+		}
+	}
+
+	account, err := h.personService.AccountById(ctx, dto.EntityId{Id: accountId})
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
+				Action: operation.LoginOperation,
+				Error:  "Таймаут",
+			})
+			return
+		} else {
+			apperr.New(w, r, http.StatusInternalServerError, apperr.AppError{
+				Action: operation.LoginOperation,
+				Error:  err.Error(),
+			})
+			return
+		}
+	}
+
+	role, err := h.RBACService.RoleById(ctx, dto.EntityId{Id: account.RoleId})
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
+				Action: operation.LoginOperation,
+				Error:  "Таймаут",
+			})
+			return
+		} else {
+			apperr.New(w, r, http.StatusInternalServerError, apperr.AppError{
+				Action: operation.LoginOperation,
+				Error:  err.Error(),
+			})
+			return
+		}
+	}
+
 	l.Info("пользователь успешно вошел", zap.String("логин", cred.Login))
 
-	render.JSON(w, r, rest.Token{}.TokenToResponse(token))
+	render.JSON(w, r, rest.Token{}.TokenToResponse(token, role))
 	return
 }
