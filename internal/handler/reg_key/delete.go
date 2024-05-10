@@ -2,7 +2,6 @@ package reg_key
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"github.com/go-chi/render"
 	"go.uber.org/zap"
@@ -12,6 +11,7 @@ import (
 	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/transport/rest"
 	"practice_vgpek/pkg/apperr"
+	"strconv"
 	"time"
 )
 
@@ -19,31 +19,29 @@ func (h Handler) DeleteKey(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 
-	var deletingKey dto.EntityId
-
 	l := h.l.With(
 		zap.String(layer.Endpoint, r.RequestURI),
 		zap.String(operation.Operation, operation.NewKeyOperation),
 		zap.String(layer.Layer, layer.HTTPLayer),
 	)
 
-	err := json.NewDecoder(r.Body).Decode(&deletingKey)
+	id, err := strconv.Atoi(r.URL.Query().Get("id"))
 	if err != nil {
 		l.Warn(operation.DecodeError, zap.Error(err))
 
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
-			Action: operation.InvalidateKeyOperation,
-			Error:  "Преобразование запроса",
+			Action: operation.GetActionOperation,
+			Error:  "Преобразование запроса на получение действия",
 		})
 		return
 	}
 
 	l.Info("попытка инвалидировать ключ регистрации",
 		zap.Int("id аккаунта", r.Context().Value("AccountId").(int)),
-		zap.Int("id ключа", deletingKey.Id),
+		zap.Int("id ключа", id),
 	)
 
-	deletedKey, err := h.s.InvalidateKey(ctx, deletingKey.Id)
+	deletedKey, err := h.s.InvalidateKey(ctx, dto.EntityId{Id: id})
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
