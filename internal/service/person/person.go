@@ -33,6 +33,7 @@ type PermDAO interface {
 
 type PersonDAO interface {
 	Save(ctx context.Context, data dto.PersonRegistrationData) (entity.Person, error)
+	ByParams(ctx context.Context, p params.Default) ([]entity.Person, error)
 }
 
 type AccountDAO interface {

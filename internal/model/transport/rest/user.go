@@ -7,6 +7,38 @@ import (
 	"time"
 )
 
+type PersonEntity struct {
+	Uuid uuid.UUID `json:"uuid"`
+
+	AccountId int `json:"account_id"`
+
+	FirstName  string `json:"first_name"`
+	MiddleName string `json:"middle_name"`
+	LastName   string `json:"last_name"`
+}
+
+func (p PersonEntity) EntityToResponse(person entity.Person) PersonEntity {
+	return PersonEntity{
+		Uuid:       person.UUID,
+		AccountId:  person.AccountId,
+		FirstName:  person.FirstName,
+		MiddleName: person.MiddleName,
+		LastName:   person.LastName,
+	}
+}
+
+type PersonsEntity struct {
+	Persons []PersonEntity
+}
+
+func (p PersonsEntity) EntityToResponse(persons []entity.Person) PersonsEntity {
+	for _, person := range persons {
+		p.Persons = append(p.Persons, PersonEntity{}.EntityToResponse(person))
+	}
+
+	return p
+}
+
 // Account описывает часть ответа сервиса на регистрацию пользователя
 type Account struct {
 	Login string `json:"login"`

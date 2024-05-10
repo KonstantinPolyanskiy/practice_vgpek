@@ -22,6 +22,11 @@ type GetAccountsEntityResult struct {
 	Error    error
 }
 
+type GetPersonsEntityResult struct {
+	Persons []entity.Person
+	Error   error
+}
+
 type GetAccountResult struct {
 	Account domain.Account
 	Error   error
@@ -155,6 +160,55 @@ func (s Service) EntityAccountByParam(ctx context.Context, p params.State) ([]en
 		case result := <-resCh:
 			return result.Accounts, result.Error
 		}
+	}
+}
+
+func (s Service) EntityPersonByParam(ctx context.Context, p params.State) ([]entity.Person, error) {
+	resCh := make(chan GetPersonsEntityResult)
+
+	l := s.logger.With(
+		zap.String(operation.Operation, operation.GetPersonsByParams),
+		zap.String(layer.Layer, layer.ServiceLayer),
+	)
+
+	go func() {
+		l.Info("параметры запроса",
+			zap.String("статус", p.State),
+			zap.Int("лимит", p.Default.Limit),
+			zap.Int("оффсет", p.Default.Offset),
+		)
+
+		rawPersons, err := s.personDAO.ByParams(ctx, p.Default)
+		if err != nil {
+			sendGetPersonsEntityResult(resCh, nil, "ошибка получения пользователей")
+			return
+		}
+
+		sendGetPersonsEntityResult(resCh, rawPersons, "")
+		return
+
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case result := <-resCh:
+			return result.Persons, result.Error
+		}
+	}
+}
+
+func sendGetPersonsEntityResult(resCh chan GetPersonsEntityResult, resp []entity.Person, errMsg string) {
+	var err error
+
+	if errMsg != "" {
+		err = fmt.Errorf(errMsg)
+	}
+
+	resCh <- GetPersonsEntityResult{
+		Persons: resp,
+		Error:   err,
 	}
 }
 

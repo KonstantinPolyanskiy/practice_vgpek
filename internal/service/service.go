@@ -33,8 +33,9 @@ type PersonService interface {
 
 	EntityAccountById(ctx context.Context, req dto.EntityId) (entity.Account, error)
 	AccountById(ctx context.Context, req dto.EntityId) (domain.Account, error)
-
 	EntityAccountByParam(ctx context.Context, p params.State) ([]entity.Account, error)
+
+	EntityPersonByParam(ctx context.Context, p params.State) ([]entity.Person, error)
 }
 
 type RBACService interface {

@@ -25,6 +25,7 @@ type AuthnHandler interface {
 type UserHandler interface {
 	GetAccount(w http.ResponseWriter, r *http.Request)
 	GetAccountsByParam(w http.ResponseWriter, r *http.Request)
+	GetPersonsByParam(w http.ResponseWriter, r *http.Request)
 }
 
 type KeyHandler interface {
@@ -93,7 +94,7 @@ func New(service service.Service, logger *zap.Logger) Handler {
 		RBACHandler:           rbac.NewAccessHandler(service.RBACService, logger),
 		IssuedPracticeHandler: issued_practice.NewIssuedPracticeHandler(service.IssuedPracticeService, logger),
 		SolvedPracticeHandler: solved_practice.NewCompletedPracticeHandler(service.SolvedPracticeService, logger),
-		UserHandler:           user.New(service.PersonService, accountMediator, logger),
+		UserHandler:           user.New(service.PersonService, service.PersonService, accountMediator, logger),
 	}
 }
 
@@ -103,6 +104,11 @@ func (h Handler) Init() *chi.Mux {
 	r.Route("/person", func(r chi.Router) {
 		r.Post("/", h.AuthnHandler.Registration)
 
+		r.Route("/", func(r chi.Router) {
+			r.Use(h.AuthnHandler.Identity)
+
+			r.Get("/", h.GetPersonsByParam)
+		})
 		r.Route("/account", func(r chi.Router) {
 			r.Use(h.AuthnHandler.Identity)
 

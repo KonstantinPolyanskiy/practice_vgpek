@@ -152,3 +152,70 @@ func (h Handler) GetAccountsByParam(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, rest.AccountsEntity{}.EntityToResponse(accounts))
 	return
 }
+
+func (h Handler) GetPersonsByParam(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
+
+	l := h.logger.With(
+		zap.String(layer.Endpoint, r.RequestURI),
+		zap.String(operation.Operation, operation.GetPersonsByParams),
+		zap.String(layer.Layer, layer.HTTPLayer),
+	)
+
+	defaultParams, err := queryutils.DefaultParams(r, 10, 0)
+	if err != nil {
+		l.Warn("ошибка получения параметров запроса", zap.Error(err))
+
+		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
+			Action: operation.GetAccountOperation,
+			Error:  "Преобразование запроса на получение аккаунта",
+		})
+		return
+	}
+
+	stateParams := queryutils.StateParams(r, defaultParams)
+
+	hasAccess, err := h.AccountMediator.HasAccess(ctx, ctx.Value("AccountId").(int), domain.AccountObject, domain.GetAction)
+	if err != nil {
+		l.Warn("ошибка проверки доступа", zap.Error(err))
+
+		apperr.New(w, r, http.StatusForbidden, apperr.AppError{
+			Action: operation.GetAccountOperation,
+			Error:  "Ошибка проверки доступа",
+		})
+		return
+	}
+
+	if !hasAccess {
+		apperr.New(w, r, http.StatusForbidden, apperr.AppError{
+			Action: operation.GetAccountOperation,
+			Error:  "Недостаточно прав",
+		})
+		return
+	}
+
+	persons, err := h.PersonService.EntityPersonByParam(ctx, stateParams)
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
+				Action: operation.GetActionOperation,
+				Error:  "Таймаут",
+			})
+			return
+		} else {
+			code := http.StatusInternalServerError
+
+			apperr.New(w, r, code, apperr.AppError{
+				Action: operation.GetActionOperation,
+				Error:  err.Error(),
+			})
+			return
+		}
+	}
+
+	l.Info("пользователи успешно отданы", zap.Int("кол-во пользователей", len(persons)))
+
+	render.JSON(w, r, rest.PersonsEntity{}.EntityToResponse(persons))
+	return
+}
