@@ -85,7 +85,7 @@ func (h Handler) GetKey(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Handler) GetKeys(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 300000000*time.Second)
 	defer cancel()
 
 	l := h.l.With(

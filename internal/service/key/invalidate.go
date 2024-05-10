@@ -29,18 +29,20 @@ func (s Service) InvalidateKey(ctx context.Context, req dto.EntityId) (domain.In
 		zap.String(layer.Layer, layer.ServiceLayer),
 	)
 
+	isValid := false
+
 	go func() {
 		deleteTime := time.Now()
-		invalidated, err := s.keyDAO.Update(ctx, entity.Key{
+		invalidated, err := s.keyDAO.Update(ctx, entity.KeyUpdate{
 			Id:                 req.Id,
-			RoleId:             0,
-			Body:               "",
-			MaxCountUsages:     0,
-			CurrentCountUsages: 0,
-			CreatedAt:          time.Time{},
-			IsValid:            false,
+			RoleId:             nil,
+			Body:               nil,
+			MaxCountUsages:     nil,
+			CurrentCountUsages: nil,
+			CreatedAt:          nil,
+			IsValid:            &isValid,
 			InvalidationTime:   &deleteTime,
-			GroupName:          "",
+			GroupName:          nil,
 		})
 		if err != nil {
 			sendInvalidateKeyResult(resCh, domain.InvalidatedKey{}, "ошибка инвалидирования ключа")

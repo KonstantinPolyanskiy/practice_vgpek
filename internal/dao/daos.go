@@ -54,7 +54,7 @@ type KeyDAO interface {
 	ByBody(ctx context.Context, body string) (entity.Key, error)
 	ByParams(ctx context.Context, p params.Default) ([]entity.Key, error)
 
-	Update(ctx context.Context, old entity.Key) (entity.Key, error)
+	Update(ctx context.Context, old entity.KeyUpdate) (entity.Key, error)
 }
 
 type PermissionDAO interface {

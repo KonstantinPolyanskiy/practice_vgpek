@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-func (dao DAO) Update(ctx context.Context, new entity.Key) (entity.Key, error) {
+func (dao DAO) Update(ctx context.Context, new entity.KeyUpdate) (entity.Key, error) {
 	l := dao.logger.With(
 		zap.String(operation.Operation, operation.UpdateKeyDAO),
 		zap.String(layer.Layer, layer.DataLayer),
@@ -20,7 +20,7 @@ func (dao DAO) Update(ctx context.Context, new entity.Key) (entity.Key, error) {
 
 	update := updateQ("registration_key", new)
 
-	update = update.Where("reg_key_id = $2", new.Id)
+	update = update.Where("reg_key_id = $3", new.Id)
 
 	updateQuery, args, err := update.PlaceholderFormat(squirrel.Dollar).ToSql()
 	if err != nil {
@@ -58,31 +58,31 @@ func (dao DAO) Update(ctx context.Context, new entity.Key) (entity.Key, error) {
 	return updated, nil
 }
 
-func updateQ(table string, key entity.Key) squirrel.UpdateBuilder {
+func updateQ(table string, key entity.KeyUpdate) squirrel.UpdateBuilder {
 	updateBuilder := squirrel.Update(table)
 
-	if key.RoleId != 0 {
+	if key.RoleId != nil {
 		updateBuilder = updateBuilder.Set("internal_role_id", key.RoleId)
 	}
-	if key.Body != "" {
+	if key.Body != nil {
 		updateBuilder = updateBuilder.Set("body_key", key.Body)
 	}
-	if key.MaxCountUsages != 0 {
+	if key.MaxCountUsages != nil {
 		updateBuilder = updateBuilder.Set("max_count_usages", key.MaxCountUsages)
 	}
-	if key.CurrentCountUsages != 0 {
+	if key.CurrentCountUsages != nil {
 		updateBuilder = updateBuilder.Set("current_count_usages", key.CurrentCountUsages)
 	}
-	if !key.CreatedAt.IsZero() {
+	if key.CreatedAt != nil {
 		updateBuilder = updateBuilder.Set("created_at", key.CreatedAt)
 	}
-	if key.IsValid {
-		updateBuilder = updateBuilder.Set("is_valid", key.IsValid)
+	if key.IsValid != nil {
+		updateBuilder = updateBuilder.Set("is_valid", &key.IsValid)
 	}
 	if key.InvalidationTime != nil {
-		updateBuilder = updateBuilder.Set("invalidation_time", *key.InvalidationTime)
+		updateBuilder = updateBuilder.Set("invalidation_time", &key.InvalidationTime)
 	}
-	if key.GroupName != "" {
+	if key.GroupName != nil {
 		updateBuilder = updateBuilder.Set("group_name", key.GroupName)
 	}
 

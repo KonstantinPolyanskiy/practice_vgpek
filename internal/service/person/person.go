@@ -11,7 +11,7 @@ import (
 
 type KeyDAO interface {
 	ByBody(ctx context.Context, body string) (entity.Key, error)
-	Update(ctx context.Context, key entity.Key) (entity.Key, error)
+	Update(ctx context.Context, key entity.KeyUpdate) (entity.Key, error)
 }
 
 type KeyService interface {

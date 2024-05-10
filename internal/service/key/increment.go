@@ -7,7 +7,6 @@ import (
 	"practice_vgpek/internal/model/entity"
 	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
-	"time"
 )
 
 type IncrementResult struct {
@@ -23,17 +22,19 @@ func (s Service) Increment(ctx context.Context, key entity.Key) (entity.Key, err
 		zap.String(layer.Layer, layer.ServiceLayer),
 	)
 
+	current := key.CurrentCountUsages + 1
+
 	go func() {
-		incremented, err := s.keyDAO.Update(ctx, entity.Key{
+		incremented, err := s.keyDAO.Update(ctx, entity.KeyUpdate{
 			Id:                 key.Id,
-			RoleId:             0,
-			Body:               "",
-			MaxCountUsages:     0,
-			CurrentCountUsages: key.CurrentCountUsages + 1,
-			CreatedAt:          time.Time{},
-			IsValid:            false,
+			RoleId:             nil,
+			Body:               nil,
+			MaxCountUsages:     nil,
+			CurrentCountUsages: &current,
+			CreatedAt:          nil,
+			IsValid:            nil,
 			InvalidationTime:   nil,
-			GroupName:          "",
+			GroupName:          nil,
 		})
 		if err != nil {
 			sendIncrementResult(resCh, entity.Key{}, "Ошибка инкрементирования ключа")

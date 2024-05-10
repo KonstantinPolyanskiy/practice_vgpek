@@ -9,7 +9,7 @@ import (
 )
 
 type DAO interface {
-	Update(ctx context.Context, key entity.Key) (entity.Key, error)
+	Update(ctx context.Context, key entity.KeyUpdate) (entity.Key, error)
 	ById(ctx context.Context, id int) (entity.Key, error)
 	ByParams(ctx context.Context, p params.Default) ([]entity.Key, error)
 	Save(ctx context.Context, info dto.NewKeyInfo) (entity.Key, error)
