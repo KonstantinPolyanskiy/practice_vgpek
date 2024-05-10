@@ -10,6 +10,7 @@ import (
 	"practice_vgpek/internal/model/dto"
 	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
+	"practice_vgpek/internal/model/transport/rest"
 	"practice_vgpek/pkg/apperr"
 	"time"
 )
@@ -71,6 +72,6 @@ func (h Handler) Login(w http.ResponseWriter, r *http.Request) {
 
 	l.Info("пользователь успешно вошел", zap.String("логин", cred.Login))
 
-	render.JSON(w, r, token)
+	render.JSON(w, r, rest.Token{}.TokenToResponse(token))
 	return
 }
