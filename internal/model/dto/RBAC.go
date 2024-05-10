@@ -9,9 +9,9 @@ type NewRBACPart struct {
 }
 
 type SetPermissionReq struct {
-	RoleId    int   `json:"roleId"`
-	ObjectId  int   `json:"objectId"`
-	ActionsId []int `json:"actionsId"`
+	RoleId    int   `json:"role_id"`
+	ObjectId  int   `json:"object_id"`
+	ActionsId []int `json:"actions_id"`
 }
 
 type NewRBACReq struct {
