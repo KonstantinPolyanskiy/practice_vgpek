@@ -84,6 +84,70 @@ func (h AccessHandler) AddAction(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func (h AccessHandler) DeleteAction(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
+
+	l := h.l.With(
+		zap.String(layer.Endpoint, r.RequestURI),
+		zap.String(operation.Operation, operation.SoftDeleteActionById),
+		zap.String(layer.Layer, layer.HTTPLayer),
+	)
+
+	id, err := strconv.Atoi(r.URL.Query().Get("id"))
+	if err != nil {
+		l.Warn(operation.DecodeError, zap.Error(err))
+
+		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
+			Action: operation.GetActionOperation,
+			Error:  "Преобразование запроса на получение действия",
+		})
+		return
+	}
+
+	hasAccess, err := h.accountMediator.HasAccess(ctx, ctx.Value("AccountId").(int), domain.RBACObject, domain.DeleteAction)
+	if err != nil {
+		l.Warn("ошибка проверки доступа", zap.Error(err))
+
+		apperr.New(w, r, http.StatusForbidden, apperr.AppError{
+			Action: operation.GetAccountOperation,
+			Error:  "Ошибка проверки доступа",
+		})
+		return
+	}
+
+	if !hasAccess {
+		apperr.New(w, r, http.StatusForbidden, apperr.AppError{
+			Action: operation.GetAccountOperation,
+			Error:  "Недостаточно прав",
+		})
+		return
+	}
+
+	deletedAction, err := h.s.DeleteActionById(ctx, dto.EntityId{Id: id})
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
+				Action: operation.GetActionOperation,
+				Error:  "Таймаут",
+			})
+			return
+		} else {
+			code := http.StatusInternalServerError
+
+			apperr.New(w, r, code, apperr.AppError{
+				Action: operation.GetActionOperation,
+				Error:  err.Error(),
+			})
+			return
+		}
+	}
+
+	render.JSON(w, r, rest.RBACPartDomainToResponse(deletedAction))
+	return
+
+}
+
 func (h AccessHandler) GetAction(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3000*time.Second)
 	defer cancel()

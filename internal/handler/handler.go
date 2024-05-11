@@ -38,6 +38,7 @@ type KeyHandler interface {
 
 type RBACHandler interface {
 	AddAction(w http.ResponseWriter, r *http.Request)
+	DeleteAction(w http.ResponseWriter, r *http.Request)
 
 	AddObject(w http.ResponseWriter, r *http.Request)
 
@@ -141,6 +142,7 @@ func (h Handler) Init() *chi.Mux {
 		r.Get("/", h.RBACHandler.GetAction)
 		r.Get("/params", h.RBACHandler.GetActions)
 
+		r.Delete("/", h.RBACHandler.DeleteAction)
 	})
 
 	r.Route("/object", func(r chi.Router) {

@@ -2,6 +2,7 @@ package rbac
 
 import (
 	"go.uber.org/zap"
+	"practice_vgpek/internal/model/domain"
 )
 
 type RBACService struct {
@@ -29,6 +30,10 @@ func New(
 
 type Deletable interface {
 	Deleted() bool
+}
+
+type Part interface {
+	Part() domain.RBACPart
 }
 
 // filterDeleted возвращает только удаленные элементы

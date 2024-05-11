@@ -10,6 +10,7 @@ import (
 
 type RBACService interface {
 	ActionById(ctx context.Context, req dto.EntityId) (domain.Action, error)
+	DeleteActionById(ctx context.Context, req dto.EntityId) (domain.Action, error)
 	ActionsByParams(ctx context.Context, params params.State) ([]domain.Action, error)
 
 	ObjectById(ctx context.Context, req dto.EntityId) (domain.Object, error)

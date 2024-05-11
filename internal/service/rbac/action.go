@@ -10,11 +10,13 @@ import (
 	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/params"
+	"time"
 )
 
 type ActionDAO interface {
 	Save(ctx context.Context, part dto.NewRBACPart) (entity.Action, error)
 	ById(ctx context.Context, id int) (entity.Action, error)
+	SoftDeleteById(ctx context.Context, id int, info dto.DeleteInfo) error
 	ByParams(ctx context.Context, params params.Default) ([]entity.Action, error)
 }
 
@@ -85,6 +87,69 @@ func (s RBACService) NewAction(ctx context.Context, req dto.NewRBACReq) (domain.
 			return domain.Action{}, ctx.Err()
 		case result := <-resCh:
 			return result.Action, result.Error
+		}
+	}
+}
+
+func (s RBACService) DeleteActionById(ctx context.Context, req dto.EntityId) (domain.Action, error) {
+	resCh := make(chan ActionResult)
+
+	l := s.l.With(
+		zap.String(operation.Operation, operation.SoftDeleteActionById),
+		zap.String(layer.Layer, layer.ServiceLayer),
+	)
+
+	go func() {
+		info := dto.DeleteInfo{
+			DeleteTime: time.Now(),
+		}
+
+		err := s.actionDAO.SoftDeleteById(ctx, req.Id, info)
+		if err != nil {
+			l.Warn("возникла ошибка мягкого удаления действия",
+				zap.Int("id", req.Id),
+				zap.Time("время удаления", info.DeleteTime),
+			)
+
+			sendActionResult(resCh, domain.Action{}, "возникла ошибка удаления")
+			return
+		}
+
+		deletedActionEntity, err := s.actionDAO.ById(ctx, req.Id)
+		if err != nil {
+			l.Warn("возникла ошибка получения удаленного действия", zap.Int("id", req.Id))
+
+			sendActionResult(resCh, domain.Action{}, "возникла ошибка удаления")
+			return
+		}
+
+		var isDeleted bool
+
+		if deletedActionEntity.IsDeleted != nil {
+			isDeleted = true
+		}
+
+		action := domain.Action{
+			ID:          deletedActionEntity.Id,
+			Name:        deletedActionEntity.Name,
+			Description: deletedActionEntity.Description,
+			CreatedAt:   deletedActionEntity.CreatedAt,
+			IsDeleted:   isDeleted,
+			DeletedAt:   deletedActionEntity.IsDeleted,
+		}
+
+		sendActionResult(resCh, action, "")
+		return
+
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return domain.Action{}, ctx.Err()
+		case result := <-resCh:
+			return result.Action, result.Error
+
 		}
 	}
 }
