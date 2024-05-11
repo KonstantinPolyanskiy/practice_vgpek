@@ -18,23 +18,18 @@ type ActionDAO interface {
 	ByParams(ctx context.Context, params params.Default) ([]entity.Action, error)
 }
 
-type AddedActionResult struct {
+type ActionResult struct {
 	Action domain.Action
 	Error  error
 }
 
-type GetActionResult struct {
-	Action domain.Action
-	Error  error
-}
-
-type GetActionsResult struct {
+type ActionsResult struct {
 	Actions []domain.Action
 	Error   error
 }
 
 func (s RBACService) NewAction(ctx context.Context, req dto.NewRBACReq) (domain.Action, error) {
-	resCh := make(chan AddedActionResult)
+	resCh := make(chan ActionResult)
 
 	l := s.l.With(
 		zap.String(operation.Operation, operation.AddActionOperation),
@@ -46,7 +41,7 @@ func (s RBACService) NewAction(ctx context.Context, req dto.NewRBACReq) (domain.
 		if req.Name == "" {
 			l.Warn("попытка добавить пустое действие")
 
-			sendAddActionResult(resCh, domain.Action{}, "Пустое добавляемое действие")
+			sendActionResult(resCh, domain.Action{}, "Пустое добавляемое действие")
 			return
 		}
 
@@ -59,7 +54,7 @@ func (s RBACService) NewAction(ctx context.Context, req dto.NewRBACReq) (domain.
 		// Сохраняем действие в БД
 		added, err := s.actionDAO.Save(ctx, part)
 		if err != nil {
-			sendAddActionResult(resCh, domain.Action{}, "Неизвестная ошибка сохранения действия")
+			sendActionResult(resCh, domain.Action{}, "Неизвестная ошибка сохранения действия")
 			return
 		}
 
@@ -80,7 +75,7 @@ func (s RBACService) NewAction(ctx context.Context, req dto.NewRBACReq) (domain.
 		}
 
 		// Возвращаем ответ
-		sendAddActionResult(resCh, action, "")
+		sendActionResult(resCh, action, "")
 		return
 	}()
 
@@ -95,7 +90,7 @@ func (s RBACService) NewAction(ctx context.Context, req dto.NewRBACReq) (domain.
 }
 
 func (s RBACService) ActionById(ctx context.Context, req dto.EntityId) (domain.Action, error) {
-	resCh := make(chan GetActionResult)
+	resCh := make(chan ActionResult)
 
 	l := s.l.With(
 		zap.String(operation.Operation, operation.GetActionOperation),
@@ -105,7 +100,7 @@ func (s RBACService) ActionById(ctx context.Context, req dto.EntityId) (domain.A
 	go func() {
 		actionEntity, err := s.actionDAO.ById(ctx, req.Id)
 		if err != nil {
-			sendGetActionResult(resCh, domain.Action{}, "Ошибка получения действия")
+			sendActionResult(resCh, domain.Action{}, "Ошибка получения действия")
 			return
 		}
 
@@ -131,7 +126,7 @@ func (s RBACService) ActionById(ctx context.Context, req dto.EntityId) (domain.A
 			zap.Bool("удалено", isDeleted),
 		)
 
-		sendGetActionResult(resCh, action, "")
+		sendActionResult(resCh, action, "")
 		return
 	}()
 
@@ -147,7 +142,7 @@ func (s RBACService) ActionById(ctx context.Context, req dto.EntityId) (domain.A
 }
 
 func (s RBACService) ActionsByParams(ctx context.Context, p params.State) ([]domain.Action, error) {
-	resCh := make(chan GetActionsResult)
+	resCh := make(chan ActionsResult)
 
 	l := s.l.With(
 		zap.String(operation.Operation, operation.GetActionsOperation),
@@ -158,7 +153,7 @@ func (s RBACService) ActionsByParams(ctx context.Context, p params.State) ([]dom
 		// Получаем действия из БД
 		actionsEntity, err := s.actionDAO.ByParams(ctx, p.Default)
 		if err != nil {
-			sendGetActionsResult(resCh, nil, "ошибка получения действий")
+			sendActionsResult(resCh, []domain.Action{}, "ошибка получения действий")
 			return
 		}
 
@@ -196,7 +191,7 @@ func (s RBACService) ActionsByParams(ctx context.Context, p params.State) ([]dom
 
 		l.Info("действия отданы", zap.Int("кол-во", len(resp)))
 
-		sendGetActionsResult(resCh, resp, "")
+		sendActionsResult(resCh, resp, "")
 		return
 
 	}()
@@ -212,39 +207,34 @@ func (s RBACService) ActionsByParams(ctx context.Context, p params.State) ([]dom
 	}
 }
 
-func sendAddActionResult(resCh chan AddedActionResult, resp domain.Action, errMsg string) {
+func sendActionResult[T Part](resCh chan ActionResult, resp T, errMsg string) {
 	var err error
 
 	if errMsg != "" {
 		err = fmt.Errorf(errMsg)
 	}
 
-	resCh <- AddedActionResult{
-		Action: resp,
+	resCh <- ActionResult{
+		Action: domain.Action(resp.Part()),
 		Error:  err,
 	}
 }
-func sendGetActionResult(resCh chan GetActionResult, resp domain.Action, errMsg string) {
+
+func sendActionsResult[T Part](resCh chan ActionsResult, resp []T, errMsg string) {
 	var err error
 
 	if errMsg != "" {
 		err = fmt.Errorf(errMsg)
 	}
 
-	resCh <- GetActionResult{
-		Action: resp,
-		Error:  err,
-	}
-}
-func sendGetActionsResult(resCh chan GetActionsResult, resp []domain.Action, errMsg string) {
-	var err error
+	actions := make([]domain.Action, 0)
 
-	if errMsg != "" {
-		err = fmt.Errorf(errMsg)
+	for _, a := range resp {
+		actions = append(actions, domain.Action(a.Part()))
 	}
 
-	resCh <- GetActionsResult{
-		Actions: resp,
+	resCh <- ActionsResult{
+		Actions: actions,
 		Error:   err,
 	}
 }
