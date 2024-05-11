@@ -24,14 +24,20 @@ type RBACService interface {
 	NewPermission(ctx context.Context, req dto.SetPermissionReq) error
 }
 
-type AccessHandler struct {
-	l *zap.Logger
-	s RBACService
+type AccountMediator interface {
+	HasAccess(ctx context.Context, accountId int, objectName, actionName string) (bool, error)
 }
 
-func NewAccessHandler(service RBACService, logger *zap.Logger) AccessHandler {
+type AccessHandler struct {
+	l               *zap.Logger
+	s               RBACService
+	accountMediator AccountMediator
+}
+
+func NewAccessHandler(service RBACService, accountMediator AccountMediator, logger *zap.Logger) AccessHandler {
 	return AccessHandler{
-		l: logger,
-		s: service,
+		l:               logger,
+		s:               service,
+		accountMediator: accountMediator,
 	}
 }

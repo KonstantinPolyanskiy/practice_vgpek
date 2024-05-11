@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/render"
 	"go.uber.org/zap"
 	"net/http"
+	"practice_vgpek/internal/model/domain"
 	"practice_vgpek/internal/model/dto"
 	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
@@ -37,6 +38,25 @@ func (h AccessHandler) AddAction(w http.ResponseWriter, r *http.Request) {
 			Action: operation.AddActionOperation,
 
 			Error: "Преобразование запроса на добавление действия",
+		})
+		return
+	}
+
+	hasAccess, err := h.accountMediator.HasAccess(ctx, ctx.Value("AccountId").(int), domain.RBACObject, domain.AddAction)
+	if err != nil {
+		l.Warn("ошибка проверки доступа", zap.Error(err))
+
+		apperr.New(w, r, http.StatusForbidden, apperr.AppError{
+			Action: operation.GetAccountOperation,
+			Error:  "Ошибка проверки доступа",
+		})
+		return
+	}
+
+	if !hasAccess {
+		apperr.New(w, r, http.StatusForbidden, apperr.AppError{
+			Action: operation.GetAccountOperation,
+			Error:  "Недостаточно прав",
 		})
 		return
 	}
@@ -83,6 +103,25 @@ func (h AccessHandler) GetAction(w http.ResponseWriter, r *http.Request) {
 		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
 			Action: operation.GetActionOperation,
 			Error:  "Преобразование запроса на получение действия",
+		})
+		return
+	}
+
+	hasAccess, err := h.accountMediator.HasAccess(ctx, ctx.Value("AccountId").(int), domain.RBACObject, domain.GetAction)
+	if err != nil {
+		l.Warn("ошибка проверки доступа", zap.Error(err))
+
+		apperr.New(w, r, http.StatusForbidden, apperr.AppError{
+			Action: operation.GetAccountOperation,
+			Error:  "Ошибка проверки доступа",
+		})
+		return
+	}
+
+	if !hasAccess {
+		apperr.New(w, r, http.StatusForbidden, apperr.AppError{
+			Action: operation.GetAccountOperation,
+			Error:  "Недостаточно прав",
 		})
 		return
 	}
@@ -136,6 +175,25 @@ func (h AccessHandler) GetActions(w http.ResponseWriter, r *http.Request) {
 	}
 
 	stateParams := queryutils.StateParams(r, defaultParams)
+
+	hasAccess, err := h.accountMediator.HasAccess(ctx, ctx.Value("AccountId").(int), domain.RBACObject, domain.GetAction)
+	if err != nil {
+		l.Warn("ошибка проверки доступа", zap.Error(err))
+
+		apperr.New(w, r, http.StatusForbidden, apperr.AppError{
+			Action: operation.GetAccountOperation,
+			Error:  "Ошибка проверки доступа",
+		})
+		return
+	}
+
+	if !hasAccess {
+		apperr.New(w, r, http.StatusForbidden, apperr.AppError{
+			Action: operation.GetAccountOperation,
+			Error:  "Недостаточно прав",
+		})
+		return
+	}
 
 	actions, err := h.s.ActionsByParams(ctx, stateParams)
 	if errors.Is(err, context.DeadlineExceeded) {

@@ -18,6 +18,7 @@ const (
 const (
 	AccountObject = "ACCOUNT"
 	KeyObject     = "KEY"
+	RBACObject    = "RBAC"
 )
 
 type Permissions struct {

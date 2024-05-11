@@ -19,21 +19,19 @@ func (dao DAO) Save(ctx context.Context, role dto.NewRBACPart) (entity.Role, err
 	)
 
 	insertQuery := `INSERT INTO internal_role 
-    				(role_name, description, created_at) 
+    				(role_name, description) 
 					VALUES 
-					(@RoleName, @Description, created_at)
+					(@RoleName, @Description)
 					RETURNING internal_role_id`
 
 	args := pgx.NamedArgs{
 		"RoleName":    role.Name,
 		"Description": role.Description,
-		"CreatedAt":   role.CreatedAt,
 	}
 
 	l.Debug("аргументы запроса",
 		zap.String("название", args["RoleName"].(string)),
 		zap.String("описание", args["Description"].(string)),
-		zap.Time("время создания", args["CreatedAt"].(time.Time)),
 	)
 
 	var id int

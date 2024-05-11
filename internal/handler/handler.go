@@ -140,6 +140,7 @@ func (h Handler) Init() *chi.Mux {
 
 		r.Get("/", h.RBACHandler.GetAction)
 		r.Get("/params", h.RBACHandler.GetActions)
+
 	})
 
 	r.Route("/object", func(r chi.Router) {
@@ -149,6 +150,7 @@ func (h Handler) Init() *chi.Mux {
 
 		r.Get("/", h.RBACHandler.GetObject)
 		r.Get("/params", h.RBACHandler.GetObjects)
+
 	})
 
 	r.Route("/role", func(r chi.Router) {
@@ -158,6 +160,7 @@ func (h Handler) Init() *chi.Mux {
 
 		r.Get("/", h.RBACHandler.GetRole)
 		r.Get("/params", h.RBACHandler.GetRoles)
+
 	})
 
 	r.Route("/permissions", func(r chi.Router) {

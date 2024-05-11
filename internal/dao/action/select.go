@@ -72,7 +72,7 @@ func (dao DAO) ByParams(ctx context.Context, p params.Default) ([]entity.Action,
 	)
 
 	now := time.Now()
-	rows, err := dao.db.Query(ctx, q, args)
+	rows, err := dao.db.Query(ctx, q, args...)
 	defer rows.Close()
 	if err != nil {
 		l.Error(operation.ExecuteError, zap.Error(err))

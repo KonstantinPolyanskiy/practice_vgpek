@@ -149,7 +149,7 @@ func (s RBACService) ActionById(ctx context.Context, req dto.EntityId) (domain.A
 func (s RBACService) ActionsByParams(ctx context.Context, p params.State) ([]domain.Action, error) {
 	resCh := make(chan GetActionsResult)
 
-	_ = s.l.With(
+	l := s.l.With(
 		zap.String(operation.Operation, operation.GetActionsOperation),
 		zap.String(layer.Layer, layer.ServiceLayer),
 	)
@@ -187,12 +187,14 @@ func (s RBACService) ActionsByParams(ctx context.Context, p params.State) ([]dom
 
 		switch p.State {
 		case params.All:
-			copy(resp, actions)
+			resp = append(resp, actions...)
 		case params.Deleted:
 			resp = append(resp, filterDeleted(actions)...)
 		case params.NotDeleted:
 			resp = append(resp, filterNotDeleted(actions)...)
 		}
+
+		l.Info("действия отданы", zap.Int("кол-во", len(resp)))
 
 		sendGetActionsResult(resCh, resp, "")
 		return

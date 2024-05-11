@@ -10,7 +10,6 @@ import (
 	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/params"
-	"time"
 )
 
 type ObjectDAO interface {
@@ -54,7 +53,6 @@ func (s RBACService) NewObject(ctx context.Context, req dto.NewRBACReq) (domain.
 		part := dto.NewRBACPart{
 			Name:        req.Name,
 			Description: req.Description,
-			CreatedAt:   time.Now(),
 		}
 
 		added, err := s.objectDAO.Save(ctx, part)

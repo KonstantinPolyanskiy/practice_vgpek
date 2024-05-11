@@ -10,7 +10,6 @@ import (
 	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/params"
-	"time"
 )
 
 type RoleDAO interface {
@@ -53,7 +52,6 @@ func (s RBACService) NewRole(ctx context.Context, req dto.NewRBACReq) (domain.Ro
 		part := dto.NewRBACPart{
 			Name:        req.Name,
 			Description: req.Description,
-			CreatedAt:   time.Now(),
 		}
 
 		added, err := s.roleDAO.Save(ctx, part)
