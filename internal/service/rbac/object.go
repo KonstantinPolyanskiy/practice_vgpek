@@ -2,7 +2,6 @@ package rbac
 
 import (
 	"context"
-	"fmt"
 	"go.uber.org/zap"
 	"practice_vgpek/internal/model/domain"
 	"practice_vgpek/internal/model/dto"
@@ -18,23 +17,8 @@ type ObjectDAO interface {
 	ByParams(ctx context.Context, p params.Default) ([]entity.Object, error)
 }
 
-type GetObjectResult struct {
-	Object domain.Object
-	Error  error
-}
-
-type GetObjectsResult struct {
-	Objects []domain.Object
-	Error   error
-}
-
-type AddedObjectResult struct {
-	Object domain.Object
-	Error  error
-}
-
 func (s RBACService) NewObject(ctx context.Context, req dto.NewRBACReq) (domain.Object, error) {
-	resCh := make(chan AddedObjectResult)
+	resCh := make(chan partResult)
 
 	l := s.l.With(
 		zap.String(operation.Operation, operation.AddObjectOperation),
@@ -46,7 +30,7 @@ func (s RBACService) NewObject(ctx context.Context, req dto.NewRBACReq) (domain.
 		if req.Name == "" {
 			l.Warn("Пустой добавляемый объект")
 
-			sendAddObjectResult(resCh, domain.Object{}, "Пустой добавляемый объект")
+			sendPartResult(resCh, domain.Object{}, "Пустой добавляемый объект")
 			return
 		}
 
@@ -57,7 +41,7 @@ func (s RBACService) NewObject(ctx context.Context, req dto.NewRBACReq) (domain.
 
 		added, err := s.objectDAO.Save(ctx, part)
 		if err != nil {
-			sendAddObjectResult(resCh, domain.Object{}, "Неизвестная ошибка сохранения объекта действия")
+			sendPartResult(resCh, domain.Object{}, "Неизвестная ошибка сохранения объекта действия")
 			return
 		}
 
@@ -70,7 +54,7 @@ func (s RBACService) NewObject(ctx context.Context, req dto.NewRBACReq) (domain.
 			DeletedAt:   nil,
 		}
 
-		sendAddObjectResult(resCh, object, "")
+		sendPartResult(resCh, object, "")
 		return
 	}()
 
@@ -79,13 +63,13 @@ func (s RBACService) NewObject(ctx context.Context, req dto.NewRBACReq) (domain.
 		case <-ctx.Done():
 			return domain.Object{}, ctx.Err()
 		case result := <-resCh:
-			return result.Object, result.Error
+			return domain.Object(result.part.Part()), result.error
 		}
 	}
 }
 
 func (s RBACService) ObjectById(ctx context.Context, req dto.EntityId) (domain.Object, error) {
-	resCh := make(chan GetObjectResult)
+	resCh := make(chan partResult)
 
 	l := s.l.With(
 		zap.String(operation.Operation, operation.GetObjectOperation),
@@ -95,7 +79,7 @@ func (s RBACService) ObjectById(ctx context.Context, req dto.EntityId) (domain.O
 	go func() {
 		objectEntity, err := s.objectDAO.ById(ctx, req.Id)
 		if err != nil {
-			sendGetObjectResult(resCh, domain.Object{}, "Неизвестная ошибка получения объекта")
+			sendPartResult(resCh, domain.Object{}, "Неизвестная ошибка получения объекта")
 			return
 		}
 
@@ -114,7 +98,7 @@ func (s RBACService) ObjectById(ctx context.Context, req dto.EntityId) (domain.O
 			zap.Bool("удалено", object.IsDeleted),
 		)
 
-		sendGetObjectResult(resCh, object, "")
+		sendPartResult(resCh, object, "")
 		return
 	}()
 
@@ -123,13 +107,13 @@ func (s RBACService) ObjectById(ctx context.Context, req dto.EntityId) (domain.O
 		case <-ctx.Done():
 			return domain.Object{}, ctx.Err()
 		case result := <-resCh:
-			return result.Object, result.Error
+			return domain.Object(result.part.Part()), result.error
 		}
 	}
 }
 
 func (s RBACService) ObjectsByParams(ctx context.Context, p params.State) ([]domain.Object, error) {
-	resCh := make(chan GetObjectsResult)
+	resCh := make(chan partsResult)
 
 	_ = s.l.With(
 		zap.String(operation.Operation, operation.GetObjectsOperation),
@@ -139,7 +123,7 @@ func (s RBACService) ObjectsByParams(ctx context.Context, p params.State) ([]dom
 	go func() {
 		objectsEntity, err := s.objectDAO.ByParams(ctx, p.Default)
 		if err != nil {
-			sendGetObjectsResult(resCh, nil, "ошибка получения объектов действий")
+			sendPartsResult(resCh, []domain.Object{}, "ошибка получения объектов действий")
 			return
 		}
 
@@ -174,7 +158,7 @@ func (s RBACService) ObjectsByParams(ctx context.Context, p params.State) ([]dom
 			resp = append(resp, filterNotDeleted(objects)...)
 		}
 
-		sendGetObjectsResult(resCh, objects, "")
+		sendPartsResult(resCh, objects, "")
 		return
 
 	}()
@@ -184,44 +168,13 @@ func (s RBACService) ObjectsByParams(ctx context.Context, p params.State) ([]dom
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case result := <-resCh:
-			return result.Objects, result.Error
+			resp := make([]domain.Object, 0, len(result.parts))
+
+			for _, object := range result.parts {
+				resp = append(resp, domain.Object(object.Part()))
+			}
+
+			return resp, result.error
 		}
-	}
-}
-
-func sendAddObjectResult(resCh chan AddedObjectResult, resp domain.Object, errMsg string) {
-	var err error
-
-	if errMsg != "" {
-		err = fmt.Errorf(errMsg)
-	}
-
-	resCh <- AddedObjectResult{
-		Object: resp,
-		Error:  err,
-	}
-}
-func sendGetObjectResult(resCh chan GetObjectResult, resp domain.Object, errMsg string) {
-	var err error
-
-	if errMsg != "" {
-		err = fmt.Errorf(errMsg)
-	}
-
-	resCh <- GetObjectResult{
-		Object: resp,
-		Error:  err,
-	}
-}
-func sendGetObjectsResult(resCh chan GetObjectsResult, resp []domain.Object, errMsg string) {
-	var err error
-
-	if errMsg != "" {
-		err = fmt.Errorf(errMsg)
-	}
-
-	resCh <- GetObjectsResult{
-		Objects: resp,
-		Error:   err,
 	}
 }

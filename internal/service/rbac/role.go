@@ -2,7 +2,6 @@ package rbac
 
 import (
 	"context"
-	"fmt"
 	"go.uber.org/zap"
 	"practice_vgpek/internal/model/domain"
 	"practice_vgpek/internal/model/dto"
@@ -18,23 +17,8 @@ type RoleDAO interface {
 	ByParams(ctx context.Context, p params.Default) ([]entity.Role, error)
 }
 
-type AddedRoleResult struct {
-	Role  domain.Role
-	Error error
-}
-
-type GetRoleResult struct {
-	Role  domain.Role
-	Error error
-}
-
-type GetRolesResult struct {
-	Roles []domain.Role
-	Error error
-}
-
 func (s RBACService) NewRole(ctx context.Context, req dto.NewRBACReq) (domain.Role, error) {
-	resCh := make(chan AddedRoleResult)
+	resCh := make(chan partResult)
 
 	l := s.l.With(
 		zap.String(operation.Operation, operation.AddRoleOperation),
@@ -45,7 +29,7 @@ func (s RBACService) NewRole(ctx context.Context, req dto.NewRBACReq) (domain.Ro
 		if req.Name == "" {
 			l.Warn("Пустая добавляемая роль")
 
-			sendAddRoleResult(resCh, domain.Role{}, "Пустая добавляемая роль")
+			sendPartResult(resCh, domain.Role{}, "Пустая добавляемая роль")
 			return
 		}
 
@@ -56,7 +40,7 @@ func (s RBACService) NewRole(ctx context.Context, req dto.NewRBACReq) (domain.Ro
 
 		added, err := s.roleDAO.Save(ctx, part)
 		if err != nil {
-			sendAddRoleResult(resCh, domain.Role{}, "Неизвестная ошибка сохранения роли")
+			sendPartResult(resCh, domain.Role{}, "Неизвестная ошибка сохранения роли")
 			return
 		}
 
@@ -76,7 +60,7 @@ func (s RBACService) NewRole(ctx context.Context, req dto.NewRBACReq) (domain.Ro
 			DeletedAt:   added.IsDeleted,
 		}
 
-		sendAddRoleResult(resCh, role, "")
+		sendPartResult(resCh, role, "")
 		return
 	}()
 
@@ -85,13 +69,13 @@ func (s RBACService) NewRole(ctx context.Context, req dto.NewRBACReq) (domain.Ro
 		case <-ctx.Done():
 			return domain.Role{}, ctx.Err()
 		case result := <-resCh:
-			return result.Role, result.Error
+			return domain.Role(result.part.Part()), result.error
 		}
 	}
 }
 
 func (s RBACService) RoleById(ctx context.Context, req dto.EntityId) (domain.Role, error) {
-	resCh := make(chan GetRoleResult)
+	resCh := make(chan partResult)
 
 	l := s.l.With(
 		zap.String(operation.Operation, operation.GetRoleOperation),
@@ -101,7 +85,7 @@ func (s RBACService) RoleById(ctx context.Context, req dto.EntityId) (domain.Rol
 	go func() {
 		roleEntity, err := s.roleDAO.ById(ctx, req.Id)
 		if err != nil {
-			sendGetRoleResult(resCh, domain.Role{}, "Ошибка получения роли")
+			sendPartResult(resCh, domain.Role{}, "Ошибка получения роли")
 			return
 		}
 
@@ -126,7 +110,7 @@ func (s RBACService) RoleById(ctx context.Context, req dto.EntityId) (domain.Rol
 			zap.Bool("удалено", isDeleted),
 		)
 
-		sendGetRoleResult(resCh, role, "")
+		sendPartResult(resCh, role, "")
 		return
 	}()
 
@@ -135,13 +119,13 @@ func (s RBACService) RoleById(ctx context.Context, req dto.EntityId) (domain.Rol
 		case <-ctx.Done():
 			return domain.Role{}, ctx.Err()
 		case result := <-resCh:
-			return result.Role, result.Error
+			return domain.Role(result.part.Part()), result.error
 		}
 	}
 }
 
 func (s RBACService) RolesByParams(ctx context.Context, p params.State) ([]domain.Role, error) {
-	resCh := make(chan GetRolesResult)
+	resCh := make(chan partsResult)
 
 	_ = s.l.With(
 		zap.String(operation.Operation, operation.GetRoleOperation),
@@ -151,7 +135,7 @@ func (s RBACService) RolesByParams(ctx context.Context, p params.State) ([]domai
 	go func() {
 		rolesEntity, err := s.roleDAO.ByParams(ctx, p.Default)
 		if err != nil {
-			sendGetRolesResult(resCh, nil, "Ошибка получения ролей")
+			sendPartsResult(resCh, []domain.Role{}, "Ошибка получения ролей")
 			return
 		}
 
@@ -186,7 +170,7 @@ func (s RBACService) RolesByParams(ctx context.Context, p params.State) ([]domai
 			resp = append(resp, filterNotDeleted(roles)...)
 		}
 
-		sendGetRolesResult(resCh, roles, "")
+		sendPartsResult(resCh, roles, "")
 		return
 
 	}()
@@ -196,44 +180,13 @@ func (s RBACService) RolesByParams(ctx context.Context, p params.State) ([]domai
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case result := <-resCh:
-			return result.Roles, result.Error
+			resp := make([]domain.Role, 0, len(result.parts))
+
+			for _, role := range result.parts {
+				resp = append(resp, domain.Role(role.Part()))
+			}
+
+			return resp, result.error
 		}
-	}
-}
-
-func sendAddRoleResult(resCh chan AddedRoleResult, resp domain.Role, errMsg string) {
-	var err error
-
-	if errMsg != "" {
-		err = fmt.Errorf(errMsg)
-	}
-
-	resCh <- AddedRoleResult{
-		Role:  resp,
-		Error: err,
-	}
-}
-func sendGetRoleResult(resCh chan GetRoleResult, resp domain.Role, errMsg string) {
-	var err error
-
-	if errMsg != "" {
-		err = fmt.Errorf(errMsg)
-	}
-
-	resCh <- GetRoleResult{
-		Role:  resp,
-		Error: err,
-	}
-}
-func sendGetRolesResult(resCh chan GetRolesResult, resp []domain.Role, errMsg string) {
-	var err error
-
-	if errMsg != "" {
-		err = fmt.Errorf(errMsg)
-	}
-
-	resCh <- GetRolesResult{
-		Roles: resp,
-		Error: err,
 	}
 }
