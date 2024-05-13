@@ -41,8 +41,10 @@ type RBACHandler interface {
 	DeleteAction(w http.ResponseWriter, r *http.Request)
 
 	AddObject(w http.ResponseWriter, r *http.Request)
+	DeleteObject(w http.ResponseWriter, r *http.Request)
 
 	AddRole(w http.ResponseWriter, r *http.Request)
+	DeleteRole(w http.ResponseWriter, r *http.Request)
 
 	AddPermission(w http.ResponseWriter, r *http.Request)
 
@@ -153,6 +155,7 @@ func (h Handler) Init() *chi.Mux {
 		r.Get("/", h.RBACHandler.GetObject)
 		r.Get("/params", h.RBACHandler.GetObjects)
 
+		r.Delete("/", h.RBACHandler.DeleteObject)
 	})
 
 	r.Route("/role", func(r chi.Router) {
@@ -163,6 +166,7 @@ func (h Handler) Init() *chi.Mux {
 		r.Get("/", h.RBACHandler.GetRole)
 		r.Get("/params", h.RBACHandler.GetRoles)
 
+		r.Delete("/", h.RBACHandler.DeleteRole)
 	})
 
 	r.Route("/permissions", func(r chi.Router) {

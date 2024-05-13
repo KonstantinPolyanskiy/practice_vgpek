@@ -112,9 +112,10 @@ const (
 
 // Операции с ролями
 const (
-	AddRoleOperation  = "добавление роли"
-	GetRoleOperation  = "получение роли"
-	GetRolesOperation = "получение ролей"
+	AddRoleOperation        = "добавление роли"
+	GetRoleOperation        = "получение роли"
+	GetRolesOperation       = "получение ролей"
+	SoftDeleteRoleOperation = "мягкое удаление роли по id"
 )
 
 // Операции с доступами

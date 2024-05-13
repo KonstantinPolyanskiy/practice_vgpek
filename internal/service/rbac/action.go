@@ -3,6 +3,7 @@ package rbac
 import (
 	"context"
 	"go.uber.org/zap"
+	"log"
 	"practice_vgpek/internal/model/domain"
 	"practice_vgpek/internal/model/dto"
 	"practice_vgpek/internal/model/entity"
@@ -157,12 +158,13 @@ func (s RBACService) ActionById(ctx context.Context, req dto.EntityId) (domain.A
 			sendPartResult(resCh, domain.Action{}, "Ошибка получения действия")
 			return
 		}
-
 		var isDeleted bool
 
 		if actionEntity.IsDeleted != nil {
 			isDeleted = true
 		}
+
+		log.Println(actionEntity.IsDeleted)
 
 		// Формируем ответ
 		action := domain.Action{

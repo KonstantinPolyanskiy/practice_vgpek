@@ -9,11 +9,13 @@ import (
 	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/params"
+	"time"
 )
 
 type RoleDAO interface {
 	Save(ctx context.Context, part dto.NewRBACPart) (entity.Role, error)
 	ById(ctx context.Context, id int) (entity.Role, error)
+	SoftDeleteById(ctx context.Context, id int, info dto.DeleteInfo) error
 	ByParams(ctx context.Context, p params.Default) ([]entity.Role, error)
 }
 
@@ -58,6 +60,65 @@ func (s RBACService) NewRole(ctx context.Context, req dto.NewRBACReq) (domain.Ro
 			CreatedAt:   added.CreatedAt,
 			IsDeleted:   isDeleted,
 			DeletedAt:   added.IsDeleted,
+		}
+
+		sendPartResult(resCh, role, "")
+		return
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return domain.Role{}, ctx.Err()
+		case result := <-resCh:
+			return domain.Role(result.part.Part()), result.error
+		}
+	}
+}
+
+func (s RBACService) DeleteRoleById(ctx context.Context, req dto.EntityId) (domain.Role, error) {
+	resCh := make(chan partResult)
+
+	l := s.l.With(
+		zap.String(operation.Operation, operation.SoftDeleteRoleOperation),
+		zap.String(layer.Layer, layer.ServiceLayer),
+	)
+
+	go func() {
+		info := dto.DeleteInfo{DeleteTime: time.Now()}
+
+		err := s.roleDAO.SoftDeleteById(ctx, req.Id, info)
+		if err != nil {
+			l.Warn("ошибка мягкого удаления роли",
+				zap.Int("id роли", req.Id),
+				zap.Time("время удаления", info.DeleteTime),
+			)
+
+			sendPartResult(resCh, domain.Role{}, "Неизвестная ошибка удаления роли")
+			return
+		}
+
+		deletedRoleEntity, err := s.roleDAO.ById(ctx, req.Id)
+		if err != nil {
+			l.Warn("ошибка получения удаленной роли", zap.Int("id роли", req.Id))
+
+			sendPartResult(resCh, domain.Role{}, "Ошибка удаления роли")
+			return
+		}
+
+		var isDeleted bool
+
+		if deletedRoleEntity.IsDeleted != nil {
+			isDeleted = true
+		}
+
+		role := domain.Role{
+			ID:          deletedRoleEntity.Id,
+			Name:        deletedRoleEntity.Name,
+			Description: deletedRoleEntity.Description,
+			CreatedAt:   deletedRoleEntity.CreatedAt,
+			IsDeleted:   isDeleted,
+			DeletedAt:   deletedRoleEntity.IsDeleted,
 		}
 
 		sendPartResult(resCh, role, "")
@@ -163,14 +224,14 @@ func (s RBACService) RolesByParams(ctx context.Context, p params.State) ([]domai
 
 		switch p.State {
 		case params.All:
-			copy(resp, roles)
+			resp = append(resp, roles...)
 		case params.Deleted:
 			resp = append(resp, filterDeleted(roles)...)
 		case params.NotDeleted:
 			resp = append(resp, filterNotDeleted(roles)...)
 		}
 
-		sendPartsResult(resCh, roles, "")
+		sendPartsResult(resCh, resp, "")
 		return
 
 	}()

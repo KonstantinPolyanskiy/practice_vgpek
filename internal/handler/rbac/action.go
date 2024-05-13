@@ -145,7 +145,6 @@ func (h AccessHandler) DeleteAction(w http.ResponseWriter, r *http.Request) {
 
 	render.JSON(w, r, rest.RBACPartDomainToResponse(deletedAction))
 	return
-
 }
 
 func (h AccessHandler) GetAction(w http.ResponseWriter, r *http.Request) {

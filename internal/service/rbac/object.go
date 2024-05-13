@@ -9,11 +9,13 @@ import (
 	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
 	"practice_vgpek/internal/model/params"
+	"time"
 )
 
 type ObjectDAO interface {
-	ById(ctx context.Context, id int) (entity.Object, error)
 	Save(ctx context.Context, role dto.NewRBACPart) (entity.Object, error)
+	ById(ctx context.Context, id int) (entity.Object, error)
+	SoftDeleteById(ctx context.Context, id int, info dto.DeleteInfo) error
 	ByParams(ctx context.Context, p params.Default) ([]entity.Object, error)
 }
 
@@ -112,6 +114,65 @@ func (s RBACService) ObjectById(ctx context.Context, req dto.EntityId) (domain.O
 	}
 }
 
+func (s RBACService) DeleteObjectById(ctx context.Context, req dto.EntityId) (domain.Object, error) {
+	resCh := make(chan partResult)
+
+	l := s.l.With(
+		zap.String(operation.Operation, operation.SoftDeleteObjectById),
+		zap.String(layer.Layer, layer.ServiceLayer),
+	)
+
+	go func() {
+		info := dto.DeleteInfo{DeleteTime: time.Now()}
+
+		err := s.objectDAO.SoftDeleteById(ctx, req.Id, info)
+		if err != nil {
+			l.Warn("ошибка мягкого удаления объекта",
+				zap.Int("id роли", req.Id),
+				zap.Time("время удаления", info.DeleteTime),
+			)
+
+			sendPartResult(resCh, domain.Role{}, "Неизвестная ошибка удаления роли")
+			return
+		}
+
+		deletedObjectEntity, err := s.objectDAO.ById(ctx, req.Id)
+		if err != nil {
+			l.Warn("ошибка получения удаленной роли", zap.Int("id роли", req.Id))
+
+			sendPartResult(resCh, domain.Role{}, "Ошибка удаления роли")
+			return
+		}
+
+		var isDeleted bool
+
+		if deletedObjectEntity.IsDeleted != nil {
+			isDeleted = true
+		}
+
+		object := domain.Object{
+			ID:          deletedObjectEntity.Id,
+			Name:        deletedObjectEntity.Name,
+			Description: deletedObjectEntity.Description,
+			CreatedAt:   deletedObjectEntity.CreatedAt,
+			IsDeleted:   isDeleted,
+			DeletedAt:   deletedObjectEntity.IsDeleted,
+		}
+
+		sendPartResult(resCh, object, "")
+		return
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return domain.Object{}, ctx.Err()
+		case result := <-resCh:
+			return domain.Object(result.part.Part()), result.error
+		}
+	}
+}
+
 func (s RBACService) ObjectsByParams(ctx context.Context, p params.State) ([]domain.Object, error) {
 	resCh := make(chan partsResult)
 
@@ -151,14 +212,14 @@ func (s RBACService) ObjectsByParams(ctx context.Context, p params.State) ([]dom
 
 		switch p.State {
 		case params.All:
-			copy(resp, objects)
+			resp = append(resp, objects...)
 		case params.Deleted:
 			resp = append(resp, filterDeleted(objects)...)
 		case params.NotDeleted:
 			resp = append(resp, filterNotDeleted(objects)...)
 		}
 
-		sendPartsResult(resCh, objects, "")
+		sendPartsResult(resCh, resp, "")
 		return
 
 	}()

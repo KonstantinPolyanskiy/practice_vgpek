@@ -46,10 +46,12 @@ type RBACService interface {
 
 	NewObject(ctx context.Context, req dto.NewRBACReq) (domain.Object, error)
 	ObjectById(ctx context.Context, req dto.EntityId) (domain.Object, error)
+	DeleteObjectById(ctx context.Context, req dto.EntityId) (domain.Object, error)
 	ObjectsByParams(ctx context.Context, params params.State) ([]domain.Object, error)
 
 	NewRole(ctx context.Context, req dto.NewRBACReq) (domain.Role, error)
 	RoleById(ctx context.Context, req dto.EntityId) (domain.Role, error)
+	DeleteRoleById(ctx context.Context, req dto.EntityId) (domain.Role, error)
 	RolesByParams(ctx context.Context, params params.State) ([]domain.Role, error)
 
 	NewPermission(ctx context.Context, req dto.SetPermissionReq) error

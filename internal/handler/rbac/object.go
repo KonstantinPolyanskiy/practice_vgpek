@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/render"
 	"go.uber.org/zap"
 	"net/http"
+	"practice_vgpek/internal/model/domain"
 	"practice_vgpek/internal/model/dto"
 	"practice_vgpek/internal/model/layer"
 	"practice_vgpek/internal/model/operation"
@@ -60,6 +61,69 @@ func (h AccessHandler) AddObject(w http.ResponseWriter, r *http.Request) {
 	l.Info("объект действия успешно добавлен", zap.String("название объекта", added.Name))
 
 	render.JSON(w, r, rest.RBACPartDomainToResponse(added))
+	return
+}
+
+func (h AccessHandler) DeleteObject(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
+
+	l := h.l.With(
+		zap.String(layer.Endpoint, r.RequestURI),
+		zap.String(operation.Operation, operation.SoftDeleteObjectById),
+		zap.String(layer.Layer, layer.HTTPLayer),
+	)
+
+	id, err := strconv.Atoi(r.URL.Query().Get("id"))
+	if err != nil {
+		l.Warn(operation.DecodeError, zap.Error(err))
+
+		apperr.New(w, r, http.StatusBadRequest, apperr.AppError{
+			Action: operation.SoftDeleteObjectById,
+			Error:  "Преобразование запроса на получение действия",
+		})
+		return
+	}
+
+	hasAccess, err := h.accountMediator.HasAccess(ctx, ctx.Value("AccountId").(int), domain.RBACObject, domain.DeleteAction)
+	if err != nil {
+		l.Warn("ошибка проверки доступа", zap.Error(err))
+
+		apperr.New(w, r, http.StatusForbidden, apperr.AppError{
+			Action: operation.SoftDeleteObjectById,
+			Error:  "Ошибка проверки доступа",
+		})
+		return
+	}
+
+	if !hasAccess {
+		apperr.New(w, r, http.StatusForbidden, apperr.AppError{
+			Action: operation.SoftDeleteObjectById,
+			Error:  "Недостаточно прав",
+		})
+		return
+	}
+
+	deletedObject, err := h.s.DeleteObjectById(ctx, dto.EntityId{Id: id})
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			apperr.New(w, r, http.StatusRequestTimeout, apperr.AppError{
+				Action: operation.SoftDeleteObjectById,
+				Error:  "Таймаут",
+			})
+			return
+		} else {
+			code := http.StatusInternalServerError
+
+			apperr.New(w, r, code, apperr.AppError{
+				Action: operation.SoftDeleteObjectById,
+				Error:  err.Error(),
+			})
+			return
+		}
+	}
+
+	render.JSON(w, r, rest.RBACPartDomainToResponse(deletedObject))
 	return
 }
 
