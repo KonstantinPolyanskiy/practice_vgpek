@@ -40,7 +40,7 @@ func RBACPartsDomainToResponse[T RBACAttribute](parts []T) (result []RBACPart) {
 			Description: part.Part().Description,
 			CreatedAt:   part.Part().CreatedAt,
 			IsDeleted:   part.Part().IsDeleted,
-			DeletedAt:   nil,
+			DeletedAt:   part.Part().DeletedAt,
 		})
 	}
 
